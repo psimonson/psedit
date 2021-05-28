@@ -1,7 +1,4 @@
-Things to do on my editor.
-==========================
-1) Make a text viewer, so
-to not over complicate
-things at the start. Helps
-to get going on bigger
-projects.
+TODO List:
+ - Fix bug with scrolling in the Y coordinate.
+ - Fix bug with scrolling up after scrolling down the entire buffer.
+
