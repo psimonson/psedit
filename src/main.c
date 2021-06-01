@@ -59,7 +59,8 @@ int getlinecount(const char *buffer)
 void delchar(char *buffer, long *size, int at, long offset)
 {
     if(at < 0 || at > *size) return;
-    memcpy(&buffer[at], &buffer[at + 1], offset-at-1);
+    memcpy(&buffer[at], &buffer[at + 1], offset-at);
+    *size -= 1;
 }
 /* Insert a character into the buffer.
  */
@@ -286,7 +287,8 @@ int main(int argc, char **argv)
                 }
             break;
             case KEY_DOWN: // Down Arrow - Move down document and scroll
-                if(y < MAXHEIGHT-1) {
+                // Please replace if needed...
+                if(y < MAXHEIGHT-1 && y < (linecount - 1)) {
                     y++;
                 }
                 if(y >= MAXHEIGHT-1) {
@@ -418,3 +420,4 @@ int main(int argc, char **argv)
     free(buffer);
     return 0;
 }
+
