@@ -17,9 +17,11 @@
 
 #define MAXHEIGHT 25
 #define MAXWIDTH 80
+#define MAXTABSTOP 4
 
 #define KEY_CONTROL(x) ((x) & 0x1F)
 #define KEY_RETURN 0x0A
+#define KEY_TABSTOP 0x09
 
 /* Cleanup and report error.
  */
@@ -59,7 +61,7 @@ int getlinecount(const char *buffer)
 void delchar(char *buffer, long *size, int at, long offset)
 {
     if(at < 0 || at > *size) return;
-    memcpy(&buffer[at], &buffer[at + 1], offset-at);
+    memmove(&buffer[at], &buffer[at + 1], offset-at);
     *size -= 1;
 }
 /* Insert a character into the buffer.
@@ -287,8 +289,7 @@ int main(int argc, char **argv)
                 }
             break;
             case KEY_DOWN: // Down Arrow - Move down document and scroll
-                // Please replace if needed...
-                if(y < MAXHEIGHT-1 && y < (linecount - 1)) {
+                if(y < MAXHEIGHT-1) {
                     y++;
                 }
                 if(y >= MAXHEIGHT-1) {
@@ -345,29 +346,14 @@ int main(int argc, char **argv)
                 startx = getoffset(buffer, y + skiplines);
                 endx = getoffset(buffer, (y + skiplines) + 1);
                 if(x >= 0 && x < (endx - startx)) {
-                    int len = getoffset(buffer, linecount - 1);
+                    int len = getoffset(buffer, linecount);
                     delchar(buffer, &size, startx + x, len);
                     linecount = getlinecount(buffer);
                     dirty = true;
                 }
             break;
             case KEY_BACKSPACE: // Backspace
-                startx = getoffset(buffer, y + skiplines);
-                endx = getoffset(buffer, (y + skiplines) + 1);
-                if(x > 0 && x < (endx - startx)) {
-                    int len = getoffset(buffer, linecount - 1);
-                    delchar(buffer, &size, startx + (x - 1), len);
-                    linecount = getlinecount(buffer);
-                    dirty = true;
-                    x--;
-                } else {
-                    int len = getoffset(buffer, linecount - 1);
-                    delchar(buffer, &size, startx + x, len);
-                    if(y > 0) {
-                        y--;
-                        x = (endx-startx);
-                    }
-                }
+                // TODO: Impelment me!
             break;
             case KEY_RETURN: // Enter key
             case KEY_ENTER:
@@ -375,12 +361,28 @@ int main(int argc, char **argv)
                     startx = getoffset(buffer, y + skiplines);
                     endx = getoffset(buffer, (y + skiplines) + 1);
                     if(x >= 0 && x < (endx - startx)) {
-                        int len = getoffset(buffer, linecount - 1);
+                        int len = getoffset(buffer, linecount);
                         inschar(&buffer, &size, startx + x, len, '\n');
                         linecount = getlinecount(buffer);
                         dirty = true;
                         y++;
                         x = 0;
+                    }
+                }
+            break;
+            case KEY_TABSTOP: // Tab key
+                if(y >= 0 && y < linecount - 1) {
+                    startx = getoffset(buffer, y + skiplines);
+                    endx = getoffset(buffer, (y + skiplines) + 1);
+                    if(x >= 0 && x < (endx - startx)) {
+                        int tabstop = MAXTABSTOP;
+                        while(tabstop-- > 0) {
+                            int len = getoffset(buffer, linecount);
+                            inschar(&buffer, &size, startx + x, len, ' ');
+                            x++;
+                        }
+                        linecount = getlinecount(buffer);
+                        dirty = true;
                     }
                 }
             break;
@@ -390,7 +392,7 @@ int main(int argc, char **argv)
                     startx = getoffset(buffer, y + skiplines);
                     endx = getoffset(buffer, (y + skiplines) + 1);
                     if(x >= 0 && x < (endx - startx)) {
-                        int len = getoffset(buffer, linecount - 1);
+                        int len = getoffset(buffer, linecount);
                         inschar(&buffer, &size, startx + x, len, c);
                         linecount = getlinecount(buffer);
                         dirty = true;
@@ -420,4 +422,3 @@ int main(int argc, char **argv)
     free(buffer);
     return 0;
 }
-
