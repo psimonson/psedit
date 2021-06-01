@@ -77,6 +77,21 @@ void inschar(char **buffer, long *size, int at, long offset, int ch)
         *size += 1;
     }
 }
+/* Render a line of text to the screen.
+ */
+void renderlines(const char *buffer, int skiplines)
+{
+    int x, y;
+
+    for(y = 0; y < MAXHEIGHT; y++) {
+        long startx = getoffset(buffer, y + skiplines);
+        long endx = getoffset(buffer, (y + skiplines) + 1);
+        long len = ((endx-startx) < MAXWIDTH ? (endx-startx) : MAXWIDTH);
+        for(x = 0; x < len; x++) {
+            mvaddch(y, x, buffer[startx+x]);
+        }
+    }
+}
 /* Main function for text editor.
  */
 int main(int argc, char **argv)
@@ -194,7 +209,7 @@ int main(int argc, char **argv)
     skiplines = 0;
     getyx(stdscr, y, x);
     linecount = getlinecount(buffer);
-    printw("%s", &buffer[offset]);
+    renderlines(buffer, skiplines);
     move(0, 0);
     refresh();
 
@@ -263,7 +278,7 @@ int main(int argc, char **argv)
                 if(y > 0) {
                     y--;
                 }
-                else {
+                if(y <= 0) {
                     dirty = true;
                     if(skiplines > 0) {
                         skiplines--;
@@ -274,7 +289,7 @@ int main(int argc, char **argv)
                 if(y < MAXHEIGHT-1) {
                     y++;
                 }
-                else {
+                if(y >= MAXHEIGHT-1) {
                     dirty = true;
                     if(skiplines < linecount-1) {
                         skiplines++;
@@ -307,7 +322,7 @@ int main(int argc, char **argv)
                 }
             break;
             case KEY_PPAGE: // Page up
-                if(skiplines > 0) {
+                if(y >= 0 && skiplines > 0) {
                     if(skiplines > 10)
                         skiplines -= 10;
                     else
@@ -316,7 +331,7 @@ int main(int argc, char **argv)
                 }
             break;
             case KEY_NPAGE: // Page down
-                if(skiplines < linecount - 1) {
+                if(y <= MAXHEIGHT-1 && skiplines < (linecount - 1)) {
                     if(skiplines < (linecount - 1) - 10)
                         skiplines += 10;
                     else
@@ -343,6 +358,13 @@ int main(int argc, char **argv)
                     linecount = getlinecount(buffer);
                     dirty = true;
                     x--;
+                } else {
+                    int len = getoffset(buffer, linecount - 1);
+                    delchar(buffer, &size, startx + x, len);
+                    if(y > 0) {
+                        y--;
+                        x = (endx-startx);
+                    }
                 }
             break;
             case KEY_RETURN: // Enter key
@@ -379,8 +401,7 @@ int main(int argc, char **argv)
         // Repaint if dirty (modified or scrolled)
         if(dirty) {
             clear();
-            offset = getoffset(buffer, skiplines);
-            printw("%s", &buffer[offset]);
+            renderlines(buffer, skiplines);
             move(y, x);
             refresh();
             dirty = false;
