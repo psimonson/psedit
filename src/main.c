@@ -122,6 +122,14 @@ int editor_create(editor_t *e)
     }
     return 0;
 }
+/* Delete a character from the editor buffer.
+ */
+void editor_delchr(editor_t *e, long at)
+{
+    if(at < 0 || at > e->size) return;
+    memmove(&e->data[at], &e->data[at + 1], e->size-at);
+    e->size--;
+}
 /* Insert a character into the editor buffer.
  */
 void editor_inschr(editor_t *e, long at, char ch)
@@ -154,7 +162,8 @@ void editor_render(editor_t *e)
 #define MAXTABSTOP 4
 #define CTRL_KEY(x) ((x) & 0x1F)
 #define KEY_RETURN 0x0A
-#define KEY_TAB 0x09
+#define KEY_TABSTOP 0x09
+#define KEY_BACKSPC 127
 
 /* Initialise ncurses library.
  */
@@ -260,12 +269,28 @@ int main(void)
                 }
             break;
             case KEY_DC:
-                // TODO: Implement me.
+                startx = editor_getoffset(&e, e.cy + e.skiplines);
+                endx = editor_getoffset(&e, (e.cy + e.skiplines) + 1);
+                if(e.cx >= 0 && e.cx < (endx - startx)) {
+                    editor_delchr(&e, startx + e.cx);
+                }
             break;
-            case KEY_BACKSPACE:
-                // TODO: Implement me.
+            case KEY_BACKSPC:
+                startx = editor_getoffset(&e, e.cy + e.skiplines);
+                endx = editor_getoffset(&e, (e.cy + e.skiplines) + 1);
+                if(e.cx > 0 && e.cx <= (endx - startx)) {
+                    e.cx--;
+                    editor_delchr(&e, startx + e.cx);
+                } else if(e.cx == 0 && e.cy > 0) {
+                    // TODO: Fix bug with this!
+                    startx = editor_getoffset(&e, (e.cy - 1) + e.skiplines);
+                    endx = editor_getoffset(&e, e.cy + e.skiplines);
+                    e.cx = endx - startx;
+                    e.cy--;
+                    editor_delchr(&e, startx + e.cx);
+                }
             break;
-            case KEY_TAB:
+            case KEY_TABSTOP:
                 if(e.cy < e.cols) {
                     int tabstop = MAXTABSTOP;
                     startx = editor_getoffset(&e, e.cy + e.skiplines);
