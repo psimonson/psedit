@@ -1,5 +1,5 @@
 /*
- * main.c - Basic text viewer source code.
+ * main.c - Basic text editor source code.
  *
  * Author: Philip R. Simonson
  * Date  : 06/06/2021
@@ -52,7 +52,7 @@ long editor_getline(editor_t *e, long offset)
     long i, nlines = 0;
 
     for(i = 0; i < e->size && i != offset; i++) {
-        if(e->data[i] == '\n')
+        if(e->data[i] == '\n' || e->data[i] == 0)
             nlines++;
     }
     return nlines;
@@ -64,7 +64,7 @@ long editor_getoffset(editor_t *e, int line_num)
     long i, nlines = 0;
 
     for(i = 0; i < e->size && line_num != nlines; i++) {
-        if(e->data[i] == '\n')
+        if(e->data[i] == '\n' || e->data[i] == 0)
             nlines++;
     }
     return i;
@@ -151,6 +151,7 @@ void editor_render(editor_t *e)
 
 /* ---------------------------- Main Functions ------------------------- */
 
+#define MAXTABSTOP 4
 #define CTRL_KEY(x) ((x) & 0x1F)
 #define KEY_RETURN 0x0A
 #define KEY_TAB 0x09
@@ -205,9 +206,12 @@ int main(void)
                 e.linecount = editor_getlinecount(&e);
                 if(e.cy != 0) {
                     e.cy--;
+                    startx = editor_getoffset(&e, e.cy + e.skiplines);
+                    endx = editor_getoffset(&e, (e.cy + e.skiplines) + 1);
+                    if(e.cx > (endx - startx) - 1)
+                        e.cx = (endx - startx) - 1;
                 }
                 else {
-                    int skiptotal = (e.linecount - e.rows) - 1;
                     if(e.skiplines > 0)
                         e.skiplines--;
                     else
@@ -218,13 +222,17 @@ int main(void)
                 e.linecount = editor_getlinecount(&e);
                 if(e.cy != e.rows) {
                     e.cy++;
+                    startx = editor_getoffset(&e, e.cy + e.skiplines);
+                    endx = editor_getoffset(&e, (e.cy + e.skiplines) + 1);
+                    if(e.cx > (endx - startx) - 1)
+                        e.cx = (endx - startx) - 1;
                 }
                 else {
-                    int skiptotal = (e.linecount - e.rows) - 1;
-                    if(e.skiplines <= skiptotal)
+                    int skiptotal = e.linecount - e.rows;
+                    if(e.skiplines < skiptotal)
                         e.skiplines++;
                     else
-                        e.skiplines = skiptotal + 1;
+                        e.skiplines = skiptotal;
                 }
             break;
             case KEY_LEFT:
@@ -258,7 +266,14 @@ int main(void)
                 // TODO: Implement me.
             break;
             case KEY_TAB:
-                // TODO: Implement me.
+                if(e.cy < e.cols) {
+                    int tabstop = MAXTABSTOP;
+                    startx = editor_getoffset(&e, e.cy + e.skiplines);
+                    while(tabstop-- > 0) {
+                        editor_inschr(&e, startx + e.cx, '\t');
+                        e.cx++;
+                    }
+                }
             break;
             case KEY_ENTER:
             case KEY_RETURN:
