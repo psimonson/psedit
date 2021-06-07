@@ -285,8 +285,10 @@ int main(void)
                 } else if(e.cx == 0 && e.cy > 0) {
                     startx = editor_getoffset(&e, (e.cy - 1) + e.skiplines);
                     endx = editor_getoffset(&e, e.cy + e.skiplines);
-                    e.cx = endx - startx;
+                    e.cx = (endx - startx) - 1;
                     e.cy--;
+                    move(e.cy, e.cx);
+                    editor_delchr(&e, startx + e.cx);
                 }
             break;
             case KEY_TABSTOP:
