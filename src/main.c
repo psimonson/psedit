@@ -280,14 +280,13 @@ int main(void)
                 endx = editor_getoffset(&e, (e.cy + e.skiplines) + 1);
                 if(e.cx > 0 && e.cx <= (endx - startx)) {
                     e.cx--;
+                    move(e.cy, e.cx);
                     editor_delchr(&e, startx + e.cx);
                 } else if(e.cx == 0 && e.cy > 0) {
-                    // TODO: Fix bug with this!
                     startx = editor_getoffset(&e, (e.cy - 1) + e.skiplines);
                     endx = editor_getoffset(&e, e.cy + e.skiplines);
                     e.cx = endx - startx;
                     e.cy--;
-                    editor_delchr(&e, startx + e.cx);
                 }
             break;
             case KEY_TABSTOP:

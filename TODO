@@ -11,3 +11,4 @@ TODO List for EDIT by Philip R. Simonson
  + Handle special keys (e.g. Return, Arrow keys, Page Up/Down, etc.).
  * Allow you to move the cursor around the screen.
  * Fixed bug with scrolling up/down.
+ * Fixed bug with backspace.
