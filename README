@@ -1,0 +1,39 @@
+===========================================================
+=                 PSEDIT VERSION 1.0                      =
+===========================================================
+				This is a simple text editor written in C using ncurses.
+By me (Philip R. Simonson) now I have made this program,
+because I wanted to show people the right way of making a
+text editor. This text editor uses minimal resources or
+at least I tried to use minimal resources. Because I want
+this to work on even a machine that has 640KB memory.
+Enough explaination of why I made this. Below is a list
+of stuff that is implemented currently. Then, following
+is a list of the keyboard shortcuts.
+============================================================
+                        FEATURES
+============================================================
+ - Normal text input.
+ - Delete and backspace keys.
+ - Arrow keys for navigation through the buffer.
+ - Home and end keys for the start and end of line.
+ - Return and tabstop keys.
+ - Lastly file saving.
+============================================================
+                   KEYBOARD SHORTCUTS
+============================================================
+ Ctrl+Q - Quit the text editor.
+ Ctrl+S - Save the current file.
+============================================================
+                       KNOWN BUGS
+============================================================
+ - Return key bug (have to press 'Return' twice to go down
+   a line of text.
+------------------------------------------------------------
+ - Text scrolling bug (scrolling down all the way it messes
+   up the linecount and skiplines) so, it doesn't scroll
+   properly after a couple times of scrolling.
+============================================================
+                      END OF FILE
+============================================================
+

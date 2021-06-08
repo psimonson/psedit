@@ -107,6 +107,56 @@ int editor_open(editor_t *e, const char *filename)
     e->data[e->size] = 0;
     return (total != e->size);
 }
+/* Save a file from the editor (also creating a backup).
+ */
+int editor_save(editor_t *e, const char *filename)
+{
+    char fname[512];
+    long total, size;
+    char *buf;
+    FILE *fp;
+
+    // Open existing file and create backup.
+    if((fp = fopen(filename, "rb")) != NULL) {
+        fseek(fp, 0, SEEK_END);
+        size = ftell(fp);
+        rewind(fp);
+        snprintf(fname, sizeof(fname), "%s.bak", filename);
+        buf = malloc(sizeof(char) * (size + 1));
+        if(buf == NULL) {
+            fclose(fp);
+            return 1;
+        }
+        total = fread(buf, sizeof(char), size, fp);
+        fclose(fp);
+        if(total != size) {
+            free(buf);
+            return 2;
+        }
+        if((fp = fopen(fname, "wb")) == NULL) {
+            free(buf);
+            return 3;
+        }
+        total = fwrite(buf, sizeof(char), size, fp);
+        fclose(fp);
+        free(buf);
+        if(total != size)
+            return 4;
+        // Backup created successfully.
+    } else {
+        // No original file or cannot be opened.
+    }
+
+    // Now finally save the new file.
+    if((fp = fopen(filename, "wb")) == NULL)
+        return 5;
+    total = fwrite(e->data, sizeof(char), e->size, fp);
+    fclose(fp);
+    if(total != e->size)
+        return 6;
+    // File written successfully.
+    return 0;
+}
 /* Create a blank buffer for editor (new file).
  */
 int editor_create(editor_t *e)
@@ -178,17 +228,22 @@ static void ncurses_init(void)
 }
 /* Entry point for text editor.
  */
-int main(void)
+int main(int argc, char *argv[])
 {
     unsigned long offset;
     long curline;
     editor_t e;
     int rc, c;
 
+    // Take a filename as an argument.
+    if(argc != 2) {
+        fprintf(stderr, "Usage: %s <filename>\n", argv[0]);
+        return 1;
+    }
 
     // Initialise editor.
     e = editor_init();
-    if(editor_open(&e, "src/main.c") != 0) {
+    if(editor_open(&e, argv[1]) != 0) {
         fprintf(stderr, "Warning: Could not open file, creating...\n");
         if(editor_create(&e) != 0) {
             fprintf(stderr, "Error: New buffer cannot be created.\n");
@@ -209,7 +264,9 @@ int main(void)
         // Handle keyboard input.
         switch(c) {
             case CTRL_KEY('s'):
-                // TODO: Implement me.
+                if(editor_save(&e, argv[1]) != 0) {
+                    // TODO: Display error message.
+                }
             break;
             case KEY_UP:
                 e.linecount = editor_getlinecount(&e);
