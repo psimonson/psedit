@@ -291,7 +291,7 @@ int main(int argc, char *argv[])
                     startx = editor_getoffset(&e, e.cy + e.skiplines);
                     endx = editor_getoffset(&e, (e.cy + e.skiplines) + 1);
                     if(e.cx > (endx - startx) - 1)
-                        e.cx = (endx - startx) - 1;
+                        e.cx = (endx - startx) == 0 ? 0 : (endx - startx) - 1;
                 }
                 else {
                     int skiptotal = e.linecount - e.rows;
