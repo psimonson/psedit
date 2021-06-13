@@ -75,7 +75,7 @@ long editor_getlinecount(editor_t *e)
 {
     long i, nlines = 0;
     for(i = 0; i < e->size; i++) {
-        if(e->data[i] == '\n')
+        if(e->data[i] == '\n' || e->data[i] == 0)
             nlines++;
     }
     return nlines;
@@ -275,7 +275,7 @@ int main(int argc, char *argv[])
                     startx = editor_getoffset(&e, e.cy + e.skiplines);
                     endx = editor_getoffset(&e, (e.cy + e.skiplines) + 1);
                     if(e.cx > (endx - startx) - 1)
-                        e.cx = (endx - startx) - 1;
+                        e.cx = (endx - startx) == 0 ? 0 : (endx - startx) - 1;
                 }
                 else {
                     if(e.skiplines > 0)
@@ -286,14 +286,14 @@ int main(int argc, char *argv[])
             break;
             case KEY_DOWN:
                 e.linecount = editor_getlinecount(&e);
-                if(e.cy != e.rows) {
+                if(e.cy != e.rows && (e.cy + e.skiplines) != e.linecount) {
                     e.cy++;
                     startx = editor_getoffset(&e, e.cy + e.skiplines);
                     endx = editor_getoffset(&e, (e.cy + e.skiplines) + 1);
                     if(e.cx > (endx - startx) - 1)
                         e.cx = (endx - startx) == 0 ? 0 : (endx - startx) - 1;
                 }
-                else {
+                else if(e.cy >= e.rows) {
                     int skiptotal = e.linecount - e.rows;
                     if(e.skiplines < skiptotal)
                         e.skiplines++;
@@ -322,7 +322,8 @@ int main(int argc, char *argv[])
                 startx = editor_getoffset(&e, e.cy + e.skiplines);
                 endx = editor_getoffset(&e, (e.cy + e.skiplines) + 1);
                 if(e.cx != (endx - startx) - 1) {
-                    e.cx = (endx - startx) - 1;
+                    int len = (endx - startx);
+                    e.cx = len > 0 ? len - 1 : len;
                 }
             break;
             case KEY_DC:

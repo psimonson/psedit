@@ -12,3 +12,4 @@ TODO List for EDIT by Philip R. Simonson
  * Allow you to move the cursor around the screen.
  * Fixed bug with scrolling up/down.
  * Fixed bug with backspace.
+ * Fixed more bugs with movement keys, now all current bugs are gone.
