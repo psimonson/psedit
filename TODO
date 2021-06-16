@@ -9,7 +9,9 @@ TODO List for EDIT by Philip R. Simonson
 
  - Rest of a simple text editor.
  + Handle special keys (e.g. Return, Arrow keys, Page Up/Down, etc.).
+ + Simple find feature (Almost done).
+ + Fix bug with 'Return' key.
  * Allow you to move the cursor around the screen.
- * Fixed bug with scrolling up/down.
- * Fixed bug with backspace.
- * Fixed more bugs with movement keys, now all current bugs are gone.
+ * Fix bug with scrolling up/down.
+ * Fix bug with backspace.
+ * Fix more bugs with movement keys, now all current bugs are gone.

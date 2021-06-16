@@ -80,6 +80,31 @@ long editor_getlinecount(editor_t *e)
     }
     return nlines;
 }
+/* Search through a file with the editor.
+ */
+void editor_find(editor_t *e, const char *string)
+{
+    char *p;
+
+    // Search through the file.
+    p = strstr(e->data, string);
+    if(p != NULL) {
+        long offset = p - e->data;
+        long lines = editor_getline(e, offset);
+        long offset2;
+
+        // Calculate cursor position in buffer.
+        if(lines > e->rows) {
+            e->skiplines = (lines - e->rows) + 1;
+        }
+        else {
+            e->skiplines = 0;
+        }
+        e->cy = lines - e->skiplines;
+        offset2 = editor_getoffset(e, e->cy + e->skiplines);
+        e->cx = offset - offset2;
+    }
+}
 /* Open a file with the editor.
  */
 int editor_open(editor_t *e, const char *filename)
@@ -268,6 +293,11 @@ int main(int argc, char *argv[])
                     // TODO: Display error message.
                 }
             break;
+            case CTRL_KEY('f'):
+                // Find in file.
+                e.linecount = editor_getlinecount(&e);
+                editor_find(&e, "find");
+            break;
             case KEY_UP:
                 e.linecount = editor_getlinecount(&e);
                 if(e.cy != 0) {
@@ -286,14 +316,15 @@ int main(int argc, char *argv[])
             break;
             case KEY_DOWN:
                 e.linecount = editor_getlinecount(&e);
-                if(e.cy != e.rows && (e.cy + e.skiplines) != e.linecount) {
+                if(e.cy != (e.rows - 1) &&
+                        (e.cy + e.skiplines) != e.linecount) {
                     e.cy++;
                     startx = editor_getoffset(&e, e.cy + e.skiplines);
                     endx = editor_getoffset(&e, (e.cy + e.skiplines) + 1);
                     if(e.cx > (endx - startx) - 1)
                         e.cx = (endx - startx) == 0 ? 0 : (endx - startx) - 1;
                 }
-                else if(e.cy >= e.rows) {
+                else if(e.cy >= (e.rows - 1)) {
                     int skiptotal = e.linecount - e.rows;
                     if(e.skiplines < skiptotal)
                         e.skiplines++;
@@ -364,14 +395,14 @@ int main(int argc, char *argv[])
                 e.linecount = editor_getlinecount(&e);
                 startx = editor_getoffset(&e, e.cy + e.skiplines);
                 editor_inschr(&e, startx + e.cx, '\n');
-                if(e.cy < e.rows)
+                if(e.cy != (e.rows - 1))
                     e.cy++;
                 else {
-                    int skiptotal = (e.linecount - e.rows) - 1;
-                    if(e.skiplines <= skiptotal)
+                    int skiptotal = e.linecount - e.rows;
+                    if(e.skiplines < skiptotal)
                         e.skiplines++;
                     else
-                        e.skiplines = skiptotal + 1;
+                        e.skiplines = skiptotal;
                 }
                 e.cx = 0;
             break;
