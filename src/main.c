@@ -52,7 +52,7 @@ long editor_getline(editor_t *e, long offset)
     long i, nlines = 0;
 
     for(i = 0; i < e->size && i != offset; i++) {
-        if(e->data[i] == '\n' || e->data[i] == 0)
+        if(e->data[i] == '\n')
             nlines++;
     }
     return nlines;
@@ -64,7 +64,7 @@ long editor_getoffset(editor_t *e, int line_num)
     long i, nlines = 0;
 
     for(i = 0; i < e->size && line_num != nlines; i++) {
-        if(e->data[i] == '\n' || e->data[i] == 0)
+        if(e->data[i] == '\n')
             nlines++;
     }
     return i;
@@ -75,7 +75,7 @@ long editor_getlinecount(editor_t *e)
 {
     long i, nlines = 0;
     for(i = 0; i < e->size; i++) {
-        if(e->data[i] == '\n' || e->data[i] == 0)
+        if(e->data[i] == '\n')
             nlines++;
     }
     return nlines;
