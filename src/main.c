@@ -129,8 +129,13 @@ int editor_open(editor_t *e, const char *filename)
     }
     total = fread(e->data, sizeof(char), e->size, fp);
     fclose(fp);
+    if(total != e->size) {
+        fprintf(stderr, "Error: Cannot open file, size doesn't match.\n");
+        free(e->data);
+        return (total != e->size);
+    }
     e->data[e->size] = 0;
-    return (total != e->size);
+    return 0;
 }
 /* Save a file from the editor (also creating a backup).
  */
@@ -274,6 +279,7 @@ int main(int argc, char *argv[])
             fprintf(stderr, "Error: New buffer cannot be created.\n");
             return 1;
         }
+        editor_inschr(&e, 0, '\n');
     }
     ncurses_init();
     getmaxyx(stdscr, e.rows, e.cols);
@@ -392,9 +398,9 @@ int main(int argc, char *argv[])
             break;
             case KEY_ENTER:
             case KEY_RETURN:
-                e.linecount = editor_getlinecount(&e);
                 startx = editor_getoffset(&e, e.cy + e.skiplines);
                 editor_inschr(&e, startx + e.cx, '\n');
+                e.linecount = editor_getlinecount(&e);
                 if(e.cy != (e.rows - 1))
                     e.cy++;
                 else {
