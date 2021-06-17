@@ -18,7 +18,7 @@
 typedef struct editor {
     int cx, cy;
     int rows, cols;
-    int skiplines;
+    int skiprows;
     int linecount;
     char *data;
     long size;
@@ -33,7 +33,7 @@ editor_t editor_init(void)
     e.cy = 0;
     e.rows = 0;
     e.cols = 0;
-    e.skiplines = 0;
+    e.skiprows = 0;
     e.linecount = 0;
     e.data = NULL;
     e.size = 0;
@@ -95,13 +95,13 @@ void editor_find(editor_t *e, const char *string)
 
         // Calculate cursor position in buffer.
         if(lines > e->rows) {
-            e->skiplines = (lines - e->rows) + 1;
+            e->skiprows = (lines - e->rows) + 1;
         }
         else {
-            e->skiplines = 0;
+            e->skiprows = 0;
         }
-        e->cy = lines - e->skiplines;
-        offset2 = editor_getoffset(e, e->cy + e->skiplines);
+        e->cy = lines - e->skiprows;
+        offset2 = editor_getoffset(e, e->cy + e->skiprows);
         e->cx = offset - offset2;
     }
 }
@@ -227,8 +227,8 @@ void editor_render(editor_t *e)
     int x, y;
 
     for(y = 0; y < e->rows; y++) {
-        unsigned long startx = editor_getoffset(e, y + e->skiplines);
-        unsigned long endx = editor_getoffset(e, (y + e->skiplines) + 1);
+        unsigned long startx = editor_getoffset(e, y + e->skiprows);
+        unsigned long endx = editor_getoffset(e, (y + e->skiprows) + 1);
         int size = endx - startx;
         size = (size > e->cols ? e->cols : size);
         for(x = 0; x < size; x++) {
@@ -308,34 +308,34 @@ int main(int argc, char *argv[])
                 e.linecount = editor_getlinecount(&e);
                 if(e.cy != 0) {
                     e.cy--;
-                    startx = editor_getoffset(&e, e.cy + e.skiplines);
-                    endx = editor_getoffset(&e, (e.cy + e.skiplines) + 1);
+                    startx = editor_getoffset(&e, e.cy + e.skiprows);
+                    endx = editor_getoffset(&e, (e.cy + e.skiprows) + 1);
                     if(e.cx > (endx - startx) - 1)
                         e.cx = (endx - startx) == 0 ? 0 : (endx - startx) - 1;
                 }
                 else {
-                    if(e.skiplines > 0)
-                        e.skiplines--;
+                    if(e.skiprows > 0)
+                        e.skiprows--;
                     else
-                        e.skiplines = 0;
+                        e.skiprows = 0;
                 }
             break;
             case KEY_DOWN:
                 e.linecount = editor_getlinecount(&e);
                 if(e.cy != (e.rows - 1) &&
-                        (e.cy + e.skiplines) != e.linecount) {
+                        (e.cy + e.skiprows) != e.linecount) {
                     e.cy++;
-                    startx = editor_getoffset(&e, e.cy + e.skiplines);
-                    endx = editor_getoffset(&e, (e.cy + e.skiplines) + 1);
+                    startx = editor_getoffset(&e, e.cy + e.skiprows);
+                    endx = editor_getoffset(&e, (e.cy + e.skiprows) + 1);
                     if(e.cx > (endx - startx) - 1)
                         e.cx = (endx - startx) == 0 ? 0 : (endx - startx) - 1;
                 }
                 else if(e.cy >= (e.rows - 1)) {
                     int skiptotal = e.linecount - e.rows;
-                    if(e.skiplines < skiptotal)
-                        e.skiplines++;
+                    if(e.skiprows < skiptotal)
+                        e.skiprows++;
                     else
-                        e.skiplines = skiptotal;
+                        e.skiprows = skiptotal;
                 }
             break;
             case KEY_LEFT:
@@ -344,8 +344,8 @@ int main(int argc, char *argv[])
                 }
             break;
             case KEY_RIGHT:
-                startx = editor_getoffset(&e, e.cy + e.skiplines);
-                endx = editor_getoffset(&e, (e.cy + e.skiplines) + 1);
+                startx = editor_getoffset(&e, e.cy + e.skiprows);
+                endx = editor_getoffset(&e, (e.cy + e.skiprows) + 1);
                 if(e.cx != (endx - startx) - 1) {
                     e.cx++;
                 }
@@ -356,51 +356,51 @@ int main(int argc, char *argv[])
                 }
             break;
             case KEY_END:
-                startx = editor_getoffset(&e, e.cy + e.skiplines);
-                endx = editor_getoffset(&e, (e.cy + e.skiplines) + 1);
+                startx = editor_getoffset(&e, e.cy + e.skiprows);
+                endx = editor_getoffset(&e, (e.cy + e.skiprows) + 1);
                 if(e.cx != (endx - startx) - 1) {
                     int len = (endx - startx);
                     e.cx = len > 0 ? len - 1 : len;
                 }
             break;
             case KEY_DC:
-                startx = editor_getoffset(&e, e.cy + e.skiplines);
-                endx = editor_getoffset(&e, (e.cy + e.skiplines) + 1);
+                startx = editor_getoffset(&e, e.cy + e.skiprows);
+                endx = editor_getoffset(&e, (e.cy + e.skiprows) + 1);
                 if(e.cx >= 0 && e.cx < (endx - startx)) {
                     editor_delchr(&e, startx + e.cx);
                 }
             break;
             case KEY_BACKSPC:
-                startx = editor_getoffset(&e, e.cy + e.skiplines);
-                endx = editor_getoffset(&e, (e.cy + e.skiplines) + 1);
+                startx = editor_getoffset(&e, e.cy + e.skiprows);
+                endx = editor_getoffset(&e, (e.cy + e.skiprows) + 1);
                 if(e.cx > 0 && e.cx <= (endx - startx)) {
                     e.cx--;
                     editor_delchr(&e, startx + e.cx);
                 }
                 else if(e.cx == 0 && e.cy > 0) {
-                    startx = editor_getoffset(&e, (e.cy - 1) + e.skiplines);
-                    endx = editor_getoffset(&e, e.cy + e.skiplines);
+                    startx = editor_getoffset(&e, (e.cy - 1) + e.skiprows);
+                    endx = editor_getoffset(&e, e.cy + e.skiprows);
                     e.cx = (endx - startx) - 1;
                     e.cy--;
                     editor_delchr(&e, startx + e.cx);
                 }
                 else if(e.cx == 0 && e.cy == 0) {
-                    if(e.skiplines > 0) {
-                       e.skiplines--;
-                       startx = editor_getoffset(&e, e.cy + e.skiplines);
-                       endx = editor_getoffset(&e, (e.cy + e.skiplines) + 1);
+                    if(e.skiprows > 0) {
+                       e.skiprows--;
+                       startx = editor_getoffset(&e, e.cy + e.skiprows);
+                       endx = editor_getoffset(&e, (e.cy + e.skiprows) + 1);
                        e.cx = (endx - startx) - 1;
                        editor_delchr(&e, startx + e.cx);
                     }
                     else {
-                       e.skiplines = 0;
+                       e.skiprows = 0;
                     }
                 }
             break;
             case KEY_TABSTOP:
                 if(e.cy < e.cols) {
                     int tabstop = MAXTABSTOP;
-                    startx = editor_getoffset(&e, e.cy + e.skiplines);
+                    startx = editor_getoffset(&e, e.cy + e.skiprows);
                     while(tabstop-- > 0) {
                         editor_inschr(&e, startx + e.cx, ' ');
                         e.cx++;
@@ -409,24 +409,24 @@ int main(int argc, char *argv[])
             break;
             case KEY_ENTER:
             case KEY_RETURN:
-                startx = editor_getoffset(&e, e.cy + e.skiplines);
+                startx = editor_getoffset(&e, e.cy + e.skiprows);
                 editor_inschr(&e, startx + e.cx, '\n');
                 e.linecount = editor_getlinecount(&e);
                 if(e.cy != (e.rows - 1))
                     e.cy++;
                 else {
                     int skiptotal = e.linecount - e.rows;
-                    if(e.skiplines < skiptotal)
-                        e.skiplines++;
+                    if(e.skiprows < skiptotal)
+                        e.skiprows++;
                     else
-                        e.skiplines = skiptotal;
+                        e.skiprows = skiptotal;
                 }
                 e.cx = 0;
             break;
             default:
                 if(isprint(c)) {
                     if(e.cy <= e.cols) {
-                        startx = editor_getoffset(&e, e.cy + e.skiplines);
+                        startx = editor_getoffset(&e, e.cy + e.skiprows);
                         editor_inschr(&e, startx + e.cx, c);
                         e.cx++;
                     }

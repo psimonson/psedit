@@ -27,12 +27,7 @@ is a list of the keyboard shortcuts.
 ============================================================
                        KNOWN BUGS
 ============================================================
- - Return key bug (have to press 'Return' twice to go down
-   a line of text.
-------------------------------------------------------------
- - Text scrolling bug (scrolling down all the way it messes
-   up the linecount and skiplines) so, it doesn't scroll
-   properly after a couple times of scrolling.
+ - None
 ============================================================
                       END OF FILE
 ============================================================
