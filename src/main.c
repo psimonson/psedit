@@ -375,15 +375,26 @@ int main(int argc, char *argv[])
                 endx = editor_getoffset(&e, (e.cy + e.skiplines) + 1);
                 if(e.cx > 0 && e.cx <= (endx - startx)) {
                     e.cx--;
-                    move(e.cy, e.cx);
                     editor_delchr(&e, startx + e.cx);
-                } else if(e.cx == 0 && e.cy > 0) {
+                }
+                else if(e.cx == 0 && e.cy > 0) {
                     startx = editor_getoffset(&e, (e.cy - 1) + e.skiplines);
                     endx = editor_getoffset(&e, e.cy + e.skiplines);
                     e.cx = (endx - startx) - 1;
                     e.cy--;
-                    move(e.cy, e.cx);
                     editor_delchr(&e, startx + e.cx);
+                }
+                else if(e.cx == 0 && e.cy == 0) {
+                    if(e.skiplines > 0) {
+                       e.skiplines--;
+                       startx = editor_getoffset(&e, e.cy + e.skiplines);
+                       endx = editor_getoffset(&e, (e.cy + e.skiplines) + 1);
+                       e.cx = (endx - startx) - 1;
+                       editor_delchr(&e, startx + e.cx);
+                    }
+                    else {
+                       e.skiplines = 0;
+                    }
                 }
             break;
             case KEY_TABSTOP:
