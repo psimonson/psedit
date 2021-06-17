@@ -402,7 +402,7 @@ int main(int argc, char *argv[])
                     int tabstop = MAXTABSTOP;
                     startx = editor_getoffset(&e, e.cy + e.skiplines);
                     while(tabstop-- > 0) {
-                        editor_inschr(&e, startx + e.cx, '\t');
+                        editor_inschr(&e, startx + e.cx, ' ');
                         e.cx++;
                     }
                 }
