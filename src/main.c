@@ -20,6 +20,7 @@ typedef struct editor {
     int rows, cols;
     int skiprows;
     int linecount;
+    bool dirty;
     char *data;
     long size;
 } editor_t;
@@ -35,6 +36,7 @@ editor_t editor_init(void)
     e.cols = 0;
     e.skiprows = 0;
     e.linecount = 0;
+    e.dirty = true;
     e.data = NULL;
     e.size = 0;
     return e;
@@ -95,7 +97,7 @@ void editor_find(editor_t *e, const char *string)
 
         // Calculate cursor position in buffer.
         if(lines > e->rows) {
-            e->skiprows = (lines - e->rows) + 1;
+            e->skiprows = lines - (e->rows - 2);
         }
         else {
             e->skiprows = 0;
@@ -226,7 +228,7 @@ void editor_render(editor_t *e)
 {
     int x, y;
 
-    for(y = 0; y < e->rows; y++) {
+    for(y = 0; y < e->rows - 1; y++) {
         unsigned long startx = editor_getoffset(e, y + e->skiprows);
         unsigned long endx = editor_getoffset(e, (y + e->skiprows) + 1);
         int size = endx - startx;
@@ -296,47 +298,53 @@ int main(int argc, char *argv[])
         switch(c) {
             case CTRL_KEY('s'):
                 if(editor_save(&e, argv[1]) != 0) {
-                    // TODO: Display error message.
+                    mvprintw(e.rows - 1, 0, "Error: Saving file %s.\n",
+                        argv[1]);
                 }
+                mvprintw(e.rows - 1, 0, "Saving file %s totaling %ld bytes.\n",
+                    argv[1], e.size);
             break;
             case CTRL_KEY('f'):
                 // Find in file.
                 e.linecount = editor_getlinecount(&e);
                 editor_find(&e, "find");
+                e.dirty = true;
             break;
             case KEY_UP:
                 e.linecount = editor_getlinecount(&e);
                 if(e.cy != 0) {
                     e.cy--;
-                    startx = editor_getoffset(&e, e.cy + e.skiprows);
-                    endx = editor_getoffset(&e, (e.cy + e.skiprows) + 1);
-                    if(e.cx > (endx - startx) - 1)
-                        e.cx = (endx - startx) == 0 ? 0 : (endx - startx) - 1;
                 }
                 else {
                     if(e.skiprows > 0)
                         e.skiprows--;
                     else
                         e.skiprows = 0;
+                    e.dirty = true;
                 }
+                startx = editor_getoffset(&e, e.cy + e.skiprows);
+                endx = editor_getoffset(&e, (e.cy + e.skiprows) + 1);
+                if(e.cx > (endx - startx) - 1)
+                    e.cx = (endx - startx) == 0 ? 0 : (endx - startx) - 1;
             break;
             case KEY_DOWN:
                 e.linecount = editor_getlinecount(&e);
-                if(e.cy != (e.rows - 1) &&
+                if(e.cy != (e.rows - 2) &&
                         (e.cy + e.skiprows) != e.linecount) {
                     e.cy++;
-                    startx = editor_getoffset(&e, e.cy + e.skiprows);
-                    endx = editor_getoffset(&e, (e.cy + e.skiprows) + 1);
-                    if(e.cx > (endx - startx) - 1)
-                        e.cx = (endx - startx) == 0 ? 0 : (endx - startx) - 1;
                 }
-                else if(e.cy >= (e.rows - 1)) {
-                    int skiptotal = e.linecount - e.rows;
+                else if(e.cy >= (e.rows - 2)) {
+                    int skiptotal = e.linecount - (e.rows - 1);
                     if(e.skiprows < skiptotal)
                         e.skiprows++;
                     else
                         e.skiprows = skiptotal;
+                    e.dirty = true;
                 }
+                startx = editor_getoffset(&e, e.cy + e.skiprows);
+                endx = editor_getoffset(&e, (e.cy + e.skiprows) + 1);
+                if(e.cx > (endx - startx) - 1)
+                    e.cx = (endx - startx) == 0 ? 0 : (endx - startx) - 1;
             break;
             case KEY_LEFT:
                 if(e.cx != 0) {
@@ -369,6 +377,7 @@ int main(int argc, char *argv[])
                 if(e.cx >= 0 && e.cx < (endx - startx)) {
                     editor_delchr(&e, startx + e.cx);
                 }
+                e.dirty = true;
             break;
             case KEY_BACKSPC:
                 startx = editor_getoffset(&e, e.cy + e.skiprows);
@@ -396,6 +405,7 @@ int main(int argc, char *argv[])
                        e.skiprows = 0;
                     }
                 }
+                e.dirty = true;
             break;
             case KEY_TABSTOP:
                 if(e.cy < e.cols) {
@@ -406,37 +416,49 @@ int main(int argc, char *argv[])
                         e.cx++;
                     }
                 }
+                e.dirty = true;
             break;
             case KEY_ENTER:
             case KEY_RETURN:
                 startx = editor_getoffset(&e, e.cy + e.skiprows);
                 editor_inschr(&e, startx + e.cx, '\n');
                 e.linecount = editor_getlinecount(&e);
-                if(e.cy != (e.rows - 1))
+                if(e.cy != (e.rows - 2))
                     e.cy++;
                 else {
-                    int skiptotal = e.linecount - e.rows;
+                    int skiptotal = e.linecount - (e.rows - 1);
                     if(e.skiprows < skiptotal)
                         e.skiprows++;
                     else
                         e.skiprows = skiptotal;
                 }
                 e.cx = 0;
+                e.dirty = true;
             break;
             default:
                 if(isprint(c)) {
-                    if(e.cy < e.rows) {
+                    if(e.cy < e.rows - 1) {
                         startx = editor_getoffset(&e, e.cy + e.skiprows);
                         editor_inschr(&e, startx + e.cx, c);
                         e.cx++;
+                        e.dirty = true;
                     }
                 }
             break;
         }
-        clear();
-        editor_render(&e);
+
+        // Clear screen and repaint text.
+        if(e.dirty) {
+            clear();
+            editor_render(&e);
+        }
+
+        // Move cursor and refresh screen.
         move(e.cy, e.cx);
-        refresh();
+        if(e.dirty) {
+            refresh();
+            e.dirty = false;
+        }
     }
 
     editor_free(&e);
