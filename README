@@ -1,7 +1,7 @@
 ===========================================================
 =                 PSEDIT VERSION 1.0                      =
 ===========================================================
-				This is a simple text editor written in C using ncurses.
+   This is a simple text editor written in C using ncurses.
 By me (Philip R. Simonson) now I have made this program,
 because I wanted to show people the right way of making a
 text editor. This text editor uses minimal resources or
