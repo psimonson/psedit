@@ -425,7 +425,7 @@ int main(int argc, char *argv[])
             break;
             default:
                 if(isprint(c)) {
-                    if(e.cy <= e.cols) {
+                    if(e.cy < e.rows) {
                         startx = editor_getoffset(&e, e.cy + e.skiprows);
                         editor_inschr(&e, startx + e.cx, c);
                         e.cx++;
