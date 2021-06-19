@@ -30,10 +30,15 @@ $(TARGET): $(DEPS) $(OBJECTS)
 	$(CC) $(CFLAGS) -o $@ $(OBJECTS) $(LDFLAGS)
 
 install: all
+	mkdir -p $(DESTDIR)/$(PREFIX)/bin
+	mkdir -p $(DESTDIR)/$(PREFIX)/share/man/man1
 	install $(TARGET) $(DESTDIR)/$(PREFIX)/bin
+	install -g 0 -o 0 -m 0644 doc/psedit.1 $(DESTDIR)/$(PREFIX)/share/man/man1
+	gzip $(DESTDIR)/$(PREFIX)/share/man/man1/psedit.1
 
 uninstall:
 	rm -f $(DESTDIR)/$(PREFIX)/bin/$(TARGET)
+	rm -f $(DESTDIR)/$(PREFIX)/share/man/man1/psedit.1.gz
 
 clean:
 	rm -f $(OBJECTS) $(TARGET)
