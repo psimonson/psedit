@@ -388,8 +388,7 @@ int main(int argc, char *argv[])
                 endx = editor_getoffset(&e, (e.cy + e.skiprows) + 1);
                 if(e.cx >= 0 && e.cx < (endx - startx) &&
                     (e.cy + e.skiprows) < e.linecount) {
-                    if((endx - startx) > 1)
-                        editor_delchr(&e, startx + e.cx);
+                    editor_delchr(&e, startx + e.cx);
                 }
                 e.dirty = true;
             break;
