@@ -27,7 +27,9 @@ is a list of the keyboard shortcuts.
 ============================================================
                        KNOWN BUGS
 ============================================================
- - None
+ - Deleting passed the end of a file, makes it to where you
+   cannot go to the last line unless you press 'Return'.
+   Before you use the arrows to move (not yet fixed).
 ============================================================
                       END OF FILE
 ============================================================

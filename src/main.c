@@ -73,14 +73,14 @@ long editor_getoffset(editor_t *e, int line_num)
 }
 /* Get total number of lines in file.
  */
-long editor_getlinecount(editor_t *e)
+void editor_getlinecount(editor_t *e)
 {
     long i, nlines = 0;
     for(i = 0; i < e->size; i++) {
         if(e->data[i] == '\n')
             nlines++;
     }
-    return nlines;
+    e->linecount = nlines;
 }
 /* Search through a file with the editor.
  */
@@ -211,16 +211,27 @@ void editor_delchr(editor_t *e, long at)
     if(at < 0 || at > e->size) return;
     memmove(&e->data[at], &e->data[at + 1], e->size-at);
     e->size--;
+    editor_getlinecount(e);
 }
 /* Insert a character into the editor buffer.
  */
-void editor_inschr(editor_t *e, long at, char ch)
+static void _editor_inschr(editor_t *e, long at, char ch)
 {
     if(at < 0 || at > e->size) at = e->size;
     e->data = realloc(e->data, sizeof(char) * (e->size + 2));
     memmove(&e->data[at + 1], &e->data[at], e->size-at+1);
     e->data[at] = ch;
     e->size++;
+}
+/* Insert a character into the editor buffer with automatic new line.
+ */
+void editor_inschr(editor_t *e, long at, char ch)
+{
+    if(e->linecount == 0) {
+        _editor_inschr(e, at, '\n');
+    }
+    _editor_inschr(e, at, ch);
+    editor_getlinecount(e);
 }
 /* Render text buffer from editor.
  */
@@ -281,8 +292,8 @@ int main(int argc, char *argv[])
             fprintf(stderr, "Error: New buffer cannot be created.\n");
             return 1;
         }
-        editor_inschr(&e, 0, '\n');
     }
+    editor_getlinecount(&e);
     ncurses_init();
     getmaxyx(stdscr, e.rows, e.cols);
     clear();
@@ -293,6 +304,9 @@ int main(int argc, char *argv[])
     while((c = getch()) != CTRL_KEY('q')) {
         long startx = 0;
         long endx = 0;
+
+        // Get line count of editor.
+        editor_getlinecount(&e);
 
         // Handle keyboard input.
         switch(c) {
@@ -306,12 +320,10 @@ int main(int argc, char *argv[])
             break;
             case CTRL_KEY('f'):
                 // Find in file.
-                e.linecount = editor_getlinecount(&e);
                 editor_find(&e, "find");
                 e.dirty = true;
             break;
             case KEY_UP:
-                e.linecount = editor_getlinecount(&e);
                 if(e.cy != 0) {
                     e.cy--;
                 }
@@ -328,13 +340,13 @@ int main(int argc, char *argv[])
                     e.cx = (endx - startx) == 0 ? 0 : (endx - startx) - 1;
             break;
             case KEY_DOWN:
-                e.linecount = editor_getlinecount(&e);
                 if(e.cy != (e.rows - 2) &&
-                        (e.cy + e.skiprows) != e.linecount) {
+                    (e.cy + e.skiprows) < (e.linecount - 1)) {
                     e.cy++;
                 }
-                else if(e.cy >= (e.rows - 2)) {
-                    int skiptotal = e.linecount - (e.rows - 1);
+                else if(e.cy >= (e.rows - 2) &&
+                    (e.cy + e.skiprows) < (e.linecount - 1)) {
+                    int skiptotal = e.linecount - (e.rows - 2);
                     if(e.skiprows < skiptotal)
                         e.skiprows++;
                     else
@@ -374,26 +386,31 @@ int main(int argc, char *argv[])
             case KEY_DC:
                 startx = editor_getoffset(&e, e.cy + e.skiprows);
                 endx = editor_getoffset(&e, (e.cy + e.skiprows) + 1);
-                if(e.cx >= 0 && e.cx < (endx - startx)) {
-                    editor_delchr(&e, startx + e.cx);
+                if(e.cx >= 0 && e.cx < (endx - startx) &&
+                    (e.cy + e.skiprows) < e.linecount) {
+                    if((endx - startx) > 1)
+                        editor_delchr(&e, startx + e.cx);
                 }
                 e.dirty = true;
             break;
             case KEY_BACKSPC:
                 startx = editor_getoffset(&e, e.cy + e.skiprows);
                 endx = editor_getoffset(&e, (e.cy + e.skiprows) + 1);
-                if(e.cx > 0 && e.cx <= (endx - startx)) {
+                if(e.cx > 0 && e.cx <= (endx - startx) &&
+                    (e.cy + e.skiprows) < e.linecount) {
                     e.cx--;
                     editor_delchr(&e, startx + e.cx);
                 }
-                else if(e.cx == 0 && e.cy > 0) {
+                else if(e.cx == 0 && e.cy > 0 &&
+                    (e.cy + e.skiprows) < e.linecount) {
                     startx = editor_getoffset(&e, (e.cy - 1) + e.skiprows);
                     endx = editor_getoffset(&e, e.cy + e.skiprows);
                     e.cx = (endx - startx) - 1;
                     e.cy--;
                     editor_delchr(&e, startx + e.cx);
                 }
-                else if(e.cx == 0 && e.cy == 0) {
+                else if(e.cx == 0 && e.cy == 0 &&
+                    (e.cy + e.skiprows) < e.linecount) {
                     if(e.skiprows > 0) {
                        e.skiprows--;
                        startx = editor_getoffset(&e, e.cy + e.skiprows);
@@ -408,7 +425,7 @@ int main(int argc, char *argv[])
                 e.dirty = true;
             break;
             case KEY_TABSTOP:
-                if(e.cy < e.cols) {
+                if(e.cx < (e.cols - MAXTABSTOP)) {
                     int tabstop = MAXTABSTOP;
                     startx = editor_getoffset(&e, e.cy + e.skiprows);
                     while(tabstop-- > 0) {
@@ -422,7 +439,6 @@ int main(int argc, char *argv[])
             case KEY_RETURN:
                 startx = editor_getoffset(&e, e.cy + e.skiprows);
                 editor_inschr(&e, startx + e.cx, '\n');
-                e.linecount = editor_getlinecount(&e);
                 if(e.cy != (e.rows - 2))
                     e.cy++;
                 else {
