@@ -15,6 +15,8 @@
 
 /* ---------------------------- Editor Stuff ------------------------- */
 
+#define MAXTABSTOP 4
+
 typedef struct editor {
     int cx, cy;
     int rows, cols;
@@ -107,6 +109,63 @@ void editor_find(editor_t *e, const char *string)
         e->cx = offset - offset2;
     }
 }
+/* Convert spaces to tabstops.
+ */
+void editor_totab(editor_t *e)
+{
+    extern void editor_delchr(editor_t *e, long at);
+    int i, j;
+
+    for(i = 0; i < e->linecount; i++) {
+        int startx = editor_getoffset(e, i);
+        int endx = editor_getoffset(e, i + 1);
+        int len = endx - startx;
+        int spaces = 0;
+
+        // Loop through a line of text replace and count.
+        for(j = 0; j < (endx - startx); j++) {
+            if(e->data[startx + j] == ' ') {
+                if(j == 0)
+                    e->data[startx + j] = '\t';
+                else
+                    spaces++;
+            }
+            else {
+                break;
+            }
+        }
+
+        // Finally delete all extra spaces.
+        while(spaces-- > 0) {
+            editor_delchr(e, (startx + 1) + spaces);
+        }
+    }
+}
+/* Convert tabstops to spaces.
+ */
+void editor_tospace(editor_t *e)
+{
+    extern void editor_inschr(editor_t *e, long at, char ch);
+    int i, j;
+
+    for(i = 0; i < e->linecount; i++) {
+        int startx = editor_getoffset(e, i);
+        int endx = editor_getoffset(e, i + 1);
+        int len = endx - startx;
+        for(j = 0; j < (endx - startx); j++) {
+            if(e->data[startx + j] == '\t') {
+                int tabstop = MAXTABSTOP - 1;
+                e->data[startx + j] = ' ';
+                while(tabstop-- > 0) {
+                    editor_inschr(e, startx + j, ' ');
+                }
+            }
+            else {
+                break;
+            }
+        }
+    }
+}
 /* Open a file with the editor.
  */
 int editor_open(editor_t *e, const char *filename)
@@ -137,6 +196,8 @@ int editor_open(editor_t *e, const char *filename)
         return (total != e->size);
     }
     e->data[e->size] = 0;
+    editor_getlinecount(e);
+    editor_tospace(e);
     return 0;
 }
 /* Save a file from the editor (also creating a backup).
@@ -182,8 +243,10 @@ int editor_save(editor_t *e, const char *filename)
     // Now finally save the new file.
     if((fp = fopen(filename, "wb")) == NULL)
         return 5;
+    editor_totab(e);
     total = fwrite(e->data, sizeof(char), e->size, fp);
     fclose(fp);
+    editor_tospace(e);
     if(total != e->size)
         return 6;
     // File written successfully.
@@ -252,7 +315,6 @@ void editor_render(editor_t *e)
 
 /* ---------------------------- Main Functions ------------------------- */
 
-#define MAXTABSTOP 4
 #define CTRL_KEY(x) ((x) & 0x1F)
 #define KEY_RETURN 0x0A
 #define KEY_TABSTOP 0x09
