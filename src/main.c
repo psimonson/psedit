@@ -472,11 +472,20 @@ int main(int argc, char *argv[])
                 else if((e.cx + e.skipcols) == 0 && (e.cy + e.skiprows) == 0 &&
                     (e.cy + e.skiprows) < e.linecount) {
                     if(e.skiprows > 0) {
+                        int len, skipcols;
+
                         e.skiprows--;
                         startx = editor_getoffset(&e, e.cy + e.skiprows);
                         endx = editor_getoffset(&e, (e.cy + e.skiprows) + 1);
-                        
-                        e.cx = (endx - startx) - 1;
+                        len = (endx - startx);
+                        skipcols = (len - 1) % (e.cols - 1);
+                        if(len >= (e.cols - 1)) {
+                            e.skipcols = skipcols;
+                            e.cx = e.cols + ((len - 1) / e.cols - 1);
+                        } else {
+                            e.skipcols = 0;
+                            e.cx = len > 0 ? len - 1 : 0;
+                        }
                         editor_delchr(&e, startx + (e.cx + e.skipcols));
                     }
                     else {
