@@ -379,7 +379,7 @@ int main(int argc, char *argv[])
                 }
             break;
             case KEY_LEFT:
-                if((e.cx + e.skipcols) != 0) {
+                if(e.cx != 0) {
                     e.cx--;
                 }
                 else {
@@ -393,13 +393,13 @@ int main(int argc, char *argv[])
             case KEY_RIGHT:
                 startx = editor_getoffset(&e, e.cy + e.skiprows);
                 endx = editor_getoffset(&e, (e.cy + e.skiprows) + 1);
-                if((e.cx + e.skipcols) < (e.cols - 1) &&
-                    (e.cx + e.skipcols) < (endx - startx)) {
+                if(e.cx < (e.cols - 1) && e.cx < (endx - startx) - 1) {
                     e.cx++;
                 }
-                else if((e.cx + e.skipcols) >= (e.cols - 1) &&
-                    (e.cx + e.skipcols) < (endx - startx)) {
-                    int skiptotal = (endx - startx) % e.cols;
+                else if(e.cx >= (e.cols - 1) &&
+                    (e.cx + e.skipcols) < (endx - startx) - 1) {
+                    int len = endx - startx;
+                    int skiptotal = len >= e.cols ? len % (e.cols - 1) : 0;
                     if(e.skipcols < skiptotal)
                         e.skipcols++;
                     else
