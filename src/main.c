@@ -18,6 +18,7 @@
 typedef struct editor {
     int cx, cy;
     int rows, cols;
+    int skipcols;
     int skiprows;
     int linecount;
     bool dirty;
@@ -34,6 +35,7 @@ editor_t editor_init(void)
     e.cy = 0;
     e.rows = 0;
     e.cols = 0;
+    e.skipcols = 0;
     e.skiprows = 0;
     e.linecount = 0;
     e.dirty = true;
@@ -243,9 +245,9 @@ void editor_render(editor_t *e)
         unsigned long startx = editor_getoffset(e, y + e->skiprows);
         unsigned long endx = editor_getoffset(e, (y + e->skiprows) + 1);
         int size = endx - startx;
-        size = (size > e->cols ? e->cols : size);
+        size = (size > 0 ? size : 0);
         for(x = 0; x < size; x++) {
-            mvaddch(y, x, e->data[startx + x]);
+            mvaddch(y, x - e->skipcols, e->data[startx + x]);
         }
     }
 }
@@ -334,10 +336,19 @@ int main(int argc, char *argv[])
                         e.skiprows = 0;
                     e.dirty = true;
                 }
+
+                // Get start and end of current line.
                 startx = editor_getoffset(&e, e.cy + e.skiprows);
                 endx = editor_getoffset(&e, (e.cy + e.skiprows) + 1);
-                if(e.cx > (endx - startx) - 1)
-                    e.cx = (endx - startx) == 0 ? 0 : (endx - startx) - 1;
+
+                // Reset cursor position to snap to end of line.
+                if((e.cx + e.skipcols) > (endx - startx) - 1) {
+                    int len = (endx - startx) - 1;
+                    int skipcols = len % (e.cols - 1);
+                    e.cx = len >= e.cols ? e.cols + (len / e.cols - 1) : len > 0 ? len : 0;
+                    e.skipcols = (endx - startx) < e.cols ? 0 : skipcols;
+                    e.dirty = true;
+                }
             break;
             case KEY_DOWN:
                 if(e.cy != (e.rows - 2) &&
@@ -353,91 +364,143 @@ int main(int argc, char *argv[])
                         e.skiprows = skiptotal;
                     e.dirty = true;
                 }
+
+                // Get start and end of current line.
                 startx = editor_getoffset(&e, e.cy + e.skiprows);
                 endx = editor_getoffset(&e, (e.cy + e.skiprows) + 1);
-                if(e.cx > (endx - startx) - 1)
-                    e.cx = (endx - startx) == 0 ? 0 : (endx - startx) - 1;
+
+                // Reset cursor position to snap to end of line.
+                if((e.cx + e.skipcols) > (endx - startx) - 1) {
+                    int len = (endx - startx) - 1;
+                    int skipcols = len % (e.cols - 1);
+                    e.cx = len >= e.cols ? e.cols + (len / e.cols - 1) : len > 0 ? len : 0;
+                    e.skipcols = (endx - startx) < e.cols ? 0 : skipcols;
+                    e.dirty = true;
+                }
             break;
             case KEY_LEFT:
-                if(e.cx != 0) {
+                if((e.cx + e.skipcols) != 0) {
                     e.cx--;
+                }
+                else {
+                    if(e.skipcols > 0)
+                        e.skipcols--;
+                    else
+                        e.skipcols = 0;
+                    e.dirty = true;
                 }
             break;
             case KEY_RIGHT:
                 startx = editor_getoffset(&e, e.cy + e.skiprows);
                 endx = editor_getoffset(&e, (e.cy + e.skiprows) + 1);
-                if(e.cx != (endx - startx) - 1) {
+                if((e.cx + e.skipcols) < (e.cols - 1) &&
+                    (e.cx + e.skipcols) < (endx - startx)) {
                     e.cx++;
+                }
+                else if((e.cx + e.skipcols) >= (e.cols - 1) &&
+                    (e.cx + e.skipcols) < (endx - startx)) {
+                    int skiptotal = (endx - startx) % e.cols;
+                    if(e.skipcols < skiptotal)
+                        e.skipcols++;
+                    else
+                        e.skipcols = skiptotal;
+                    e.dirty = true;
                 }
             break;
             case KEY_HOME:
-                if(e.cx != 0) {
+                if((e.cx + e.skipcols) != 0) {
                     e.cx = 0;
+                    e.skipcols = 0;
+                    e.dirty = true;
                 }
             break;
             case KEY_END:
                 startx = editor_getoffset(&e, e.cy + e.skiprows);
                 endx = editor_getoffset(&e, (e.cy + e.skiprows) + 1);
-                if(e.cx != (endx - startx) - 1) {
-                    int len = (endx - startx);
-                    e.cx = len > 0 ? len - 1 : len;
+                if((e.cx + e.skipcols) < (e.cols - 1) &&
+                    (e.cx + e.skipcols) < (endx - startx)) {
+                    int len = (endx - startx) - 1;
+                    int skipcols = len % (e.cols - 1);
+
+                    // Calculate how many columns to skip.
+                    e.skipcols = (len >= e.cols ? skipcols: 0);
+                    // Calculate how many columns left from length of string.
+                    e.cx = len >= e.cols ? (e.cols - 1) - (len / e.cols - 1) : len > 0 ? len : 0;
+                    e.dirty = true;
                 }
             break;
             case KEY_DC:
                 startx = editor_getoffset(&e, e.cy + e.skiprows);
                 endx = editor_getoffset(&e, (e.cy + e.skiprows) + 1);
-                if(e.cx >= 0 && e.cx < (endx - startx) &&
+                if((e.cx + e.skipcols) >= 0 &&
+                    (e.cx + e.skipcols) <= (endx - startx) &&
                     (e.cy + e.skiprows) < e.linecount) {
-                    editor_delchr(&e, startx + e.cx);
+                    editor_delchr(&e, startx + (e.cx + e.skipcols));
                 }
                 e.dirty = true;
             break;
             case KEY_BACKSPC:
                 startx = editor_getoffset(&e, e.cy + e.skiprows);
                 endx = editor_getoffset(&e, (e.cy + e.skiprows) + 1);
-                if(e.cx > 0 && e.cx <= (endx - startx) &&
+                if((e.cx + e.skipcols) > 0 &&
+                    (e.cx + e.skipcols) <= (endx - startx) &&
                     (e.cy + e.skiprows) < e.linecount) {
-                    e.cx--;
-                    editor_delchr(&e, startx + e.cx);
+                    if(e.cx > 0)
+                        e.cx--;
+                    else
+                        e.skipcols--;
+                    editor_delchr(&e, startx + (e.cx + e.skipcols));
                 }
-                else if(e.cx == 0 && e.cy > 0 &&
+                else if((e.cx + e.skipcols) == 0 && (e.cy + e.skiprows) > 0 &&
                     (e.cy + e.skiprows) < e.linecount) {
+                    int len, skipcols;
+
                     startx = editor_getoffset(&e, (e.cy - 1) + e.skiprows);
                     endx = editor_getoffset(&e, e.cy + e.skiprows);
-                    e.cx = (endx - startx) - 1;
+                    len = (endx - startx);
+                    skipcols = (len - 1) % (e.cols - 1);
+                    if(len >= (e.cols - 1)) {
+                        e.skipcols = skipcols;
+                        e.cx = e.cols + ((len - 1) / e.cols - 1);
+                    } else {
+                        e.skipcols = 0;
+                        e.cx = len > 0 ? len - 1 : 0;
+                    }
                     e.cy--;
-                    editor_delchr(&e, startx + e.cx);
+                    editor_delchr(&e, startx + (e.cx + e.skipcols));
                 }
-                else if(e.cx == 0 && e.cy == 0 &&
+                else if((e.cx + e.skipcols) == 0 && (e.cy + e.skiprows) == 0 &&
                     (e.cy + e.skiprows) < e.linecount) {
                     if(e.skiprows > 0) {
-                       e.skiprows--;
-                       startx = editor_getoffset(&e, e.cy + e.skiprows);
-                       endx = editor_getoffset(&e, (e.cy + e.skiprows) + 1);
-                       e.cx = (endx - startx) - 1;
-                       editor_delchr(&e, startx + e.cx);
+                        e.skiprows--;
+                        startx = editor_getoffset(&e, e.cy + e.skiprows);
+                        endx = editor_getoffset(&e, (e.cy + e.skiprows) + 1);
+                        
+                        e.cx = (endx - startx) - 1;
+                        editor_delchr(&e, startx + (e.cx + e.skipcols));
                     }
                     else {
-                       e.skiprows = 0;
+                        e.skiprows = 0;
                     }
                 }
                 e.dirty = true;
             break;
-            case KEY_TABSTOP:
-                if(e.cx < (e.cols - MAXTABSTOP)) {
-                    int tabstop = MAXTABSTOP;
-                    startx = editor_getoffset(&e, e.cy + e.skiprows);
-                    while(tabstop-- > 0) {
-                        editor_inschr(&e, startx + e.cx, ' ');
+            case KEY_TABSTOP: {
+                int tabstop = MAXTABSTOP;
+                startx = editor_getoffset(&e, e.cy + e.skiprows);
+                while(tabstop-- > 0) {
+                    editor_inschr(&e, startx + (e.cx + e.skipcols), ' ');
+                    if(e.cx < (e.cols - 1))
                         e.cx++;
-                    }
+                    else
+                        e.skipcols++;
                 }
                 e.dirty = true;
-            break;
+            } break;
             case KEY_ENTER:
             case KEY_RETURN:
                 startx = editor_getoffset(&e, e.cy + e.skiprows);
-                editor_inschr(&e, startx + e.cx, '\n');
+                editor_inschr(&e, startx + (e.cx + e.skipcols), '\n');
                 if(e.cy != (e.rows - 2))
                     e.cy++;
                 else {
@@ -448,14 +511,18 @@ int main(int argc, char *argv[])
                         e.skiprows = skiptotal;
                 }
                 e.cx = 0;
+                e.skipcols = 0;
                 e.dirty = true;
             break;
             default:
                 if(isprint(c)) {
-                    if(e.cy < e.rows - 1) {
+                    if(e.cx < e.cols && e.cy < (e.rows - 1)) {
                         startx = editor_getoffset(&e, e.cy + e.skiprows);
-                        editor_inschr(&e, startx + e.cx, c);
-                        e.cx++;
+                        editor_inschr(&e, startx + (e.cx + e.skipcols), c);
+                        if(e.cx < (e.cols - 1))
+                            e.cx++;
+                        else
+                            e.skipcols++;
                         e.dirty = true;
                     }
                 }
