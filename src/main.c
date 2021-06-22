@@ -344,9 +344,13 @@ int main(int argc, char *argv[])
                 // Reset cursor position to snap to end of line.
                 if((e.cx + e.skipcols) > (endx - startx) - 1) {
                     int len = (endx - startx) - 1;
-                    int skipcols = len % (e.cols - 1);
-                    e.cx = len >= e.cols ? e.cols + (len / e.cols - 1) : len > 0 ? len : 0;
-                    e.skipcols = (endx - startx) < e.cols ? 0 : skipcols;
+                    int skipcols = len - e.cols + 1;
+                    int skipcx = (len - skipcols) % e.cols;
+
+                    // Calculate how many columns to skip.
+                    e.skipcols = (len >= e.cols ? skipcols: 0);
+                    // Calculate how many columns left from length.
+                    e.cx = len >= e.cols ? skipcx : len > 0 ? len : 0;
                     e.dirty = true;
                 }
             break;
@@ -372,9 +376,13 @@ int main(int argc, char *argv[])
                 // Reset cursor position to snap to end of line.
                 if((e.cx + e.skipcols) > (endx - startx) - 1) {
                     int len = (endx - startx) - 1;
-                    int skipcols = len % (e.cols - 1);
-                    e.cx = len >= e.cols ? e.cols + (len / e.cols - 1) : len > 0 ? len : 0;
-                    e.skipcols = (endx - startx) < e.cols ? 0 : skipcols;
+                    int skipcols = len - e.cols + 1;
+                    int skipcx = (len - skipcols) % e.cols;
+
+                    // Calculate how many columns to skip.
+                    e.skipcols = (len >= e.cols ? skipcols: 0);
+                    // Calculate how many columns left from length.
+                    e.cx = len >= e.cols ? skipcx : len > 0 ? len : 0;
                     e.dirty = true;
                 }
             break;
@@ -399,7 +407,7 @@ int main(int argc, char *argv[])
                 else if(e.cx >= (e.cols - 1) &&
                     (e.cx + e.skipcols) < (endx - startx) - 1) {
                     int len = endx - startx;
-                    int skiptotal = len >= e.cols ? len % (e.cols - 1) : 0;
+                    int skiptotal = len >= e.cols ? len - e.cols + 1 : 0;
                     if(e.skipcols < skiptotal)
                         e.skipcols++;
                     else
@@ -420,12 +428,13 @@ int main(int argc, char *argv[])
                 if((e.cx + e.skipcols) < (e.cols - 1) &&
                     (e.cx + e.skipcols) < (endx - startx)) {
                     int len = (endx - startx) - 1;
-                    int skipcols = len % (e.cols - 1);
+                    int skipcols = len - e.cols + 1;
+                    int skipcx = (len - skipcols) % e.cols;
 
                     // Calculate how many columns to skip.
                     e.skipcols = (len >= e.cols ? skipcols: 0);
-                    // Calculate how many columns left from length of string.
-                    e.cx = len >= e.cols ? (e.cols - 1) - (len / e.cols - 1) : len > 0 ? len : 0;
+                    // Calculate how many columns left from length.
+                    e.cx = len >= e.cols ? skipcx : len > 0 ? len : 0;
                     e.dirty = true;
                 }
             break;
@@ -453,15 +462,19 @@ int main(int argc, char *argv[])
                 }
                 else if((e.cx + e.skipcols) == 0 && (e.cy + e.skiprows) > 0 &&
                     (e.cy + e.skiprows) < e.linecount) {
-                    int len, skipcols;
+                    int len;
 
                     startx = editor_getoffset(&e, (e.cy - 1) + e.skiprows);
                     endx = editor_getoffset(&e, e.cy + e.skiprows);
                     len = (endx - startx);
-                    skipcols = (len - 1) % (e.cols - 1);
                     if(len >= (e.cols - 1)) {
-                        e.skipcols = skipcols;
-                        e.cx = e.cols + ((len - 1) / e.cols - 1);
+                        int skipcols = len - e.cols + 1;
+                        int skipcx = (len - skipcols) % e.cols;
+
+                        // Calculate how many columns to skip.
+                        e.skipcols = (len >= e.cols ? skipcols: 0);
+                        // Calculate how many columns left from length.
+                        e.cx = len >= e.cols ? skipcx : len > 0 ? len : 0;
                     } else {
                         e.skipcols = 0;
                         e.cx = len > 0 ? len - 1 : 0;
@@ -478,10 +491,14 @@ int main(int argc, char *argv[])
                         startx = editor_getoffset(&e, e.cy + e.skiprows);
                         endx = editor_getoffset(&e, (e.cy + e.skiprows) + 1);
                         len = (endx - startx);
-                        skipcols = (len - 1) % (e.cols - 1);
                         if(len >= (e.cols - 1)) {
-                            e.skipcols = skipcols;
-                            e.cx = e.cols + ((len - 1) / e.cols - 1);
+                            int skipcols = len - e.cols + 1;
+                            int skipcx = (len - skipcols) % e.cols;
+
+                            // Calculate how many columns to skip.
+                            e.skipcols = (len >= e.cols ? skipcols: 0);
+                            // Calculate how many columns left from length.
+                            e.cx = len >= e.cols ? skipcx : len > 0 ? len : 0;
                         } else {
                             e.skipcols = 0;
                             e.cx = len > 0 ? len - 1 : 0;
