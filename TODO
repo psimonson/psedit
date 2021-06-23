@@ -7,8 +7,8 @@ TODO List for EDIT by Philip R. Simonson
 
  ==========================================================================
 
- + Rest of a simple text editor.
- + Handle special keys (e.g. Return, Arrow keys, Page Up/Down, etc.).
+ * Rest of a simple text editor.
+ * Handle special keys (e.g. Return, Arrow keys, Page Up/Down, etc.).
  + Simple find feature (Almost done).
  * Update README with new information on bugs, etc.
  * Fix bug with 'Return' key.
