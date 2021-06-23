@@ -438,7 +438,7 @@ int main(int argc, char *argv[])
                 e.dirty = true;
             break;
             case KEY_NPAGE:
-                if(e.skiprows < (e.linecount - e.rows) + 1)
+                if(e.skiprows < (e.linecount - e.rows + 1) - MAXSKIPROW)
                     e.skiprows += MAXSKIPROW;
                 else
                     e.skiprows = e.linecount - e.rows + 1;
