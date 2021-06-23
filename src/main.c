@@ -15,6 +15,8 @@
 
 /* ---------------------------- Editor Stuff ------------------------- */
 
+#define MAXSKIPROW 20
+
 typedef struct editor {
     int cx, cy;
     int rows, cols;
@@ -414,6 +416,46 @@ int main(int argc, char *argv[])
                         e.skipcols = skiptotal;
                     e.dirty = true;
                 }
+            break;
+            case KEY_PPAGE:
+                if(e.skiprows > MAXSKIPROW)
+                    e.skiprows -= MAXSKIPROW;
+                else
+                    e.skiprows = 0;
+
+                startx = editor_getoffset(&e, e.cy + e.skiprows);
+                endx = editor_getoffset(&e, (e.cy + e.skiprows) + 1);
+
+                // Snap cursor to end of line.
+                if((e.cx + e.skipcols) > (endx - startx) - 1) {
+                    int len = (endx - startx) - 1;
+                    int skipcols = len - e.cols + 1;
+                    int skipcx = (len - skipcols) % e.cols;
+
+                    e.skipcols = len >= e.cols ? skipcols : 0;
+                    e.cx = len >= e.cols ? skipcx : len > 0 ? len : 0;
+                }
+                e.dirty = true;
+            break;
+            case KEY_NPAGE:
+                if(e.skiprows < (e.linecount - e.rows) + 1)
+                    e.skiprows += MAXSKIPROW;
+                else
+                    e.skiprows = e.linecount - e.rows + 1;
+
+                startx = editor_getoffset(&e, e.cy + e.skiprows);
+                endx = editor_getoffset(&e, (e.cy + e.skiprows) + 1);
+
+                // Snap cursor to end of line.
+                if((e.cx + e.skipcols) > (endx - startx) - 1) {
+                    int len = (endx - startx) - 1;
+                    int skipcols = len - e.cols + 1;
+                    int skipcx = (len - skipcols) % e.cols;
+
+                    e.skipcols = len >= e.cols ? skipcols : 0;
+                    e.cx = len >= e.cols ? skipcx : len > 0 ? len : 0;
+                }
+                e.dirty = true;
             break;
             case KEY_HOME:
                 if((e.cx + e.skipcols) != 0) {
