@@ -241,6 +241,18 @@ void editor_inschr(editor_t *e, long unsigned at, char ch)
     _editor_inschr(e, at, ch);
     editor_getlinecount(e);
 }
+/* Clear a line on the screen.
+ */
+void editor_clearline(editor_t *e, int line)
+{
+    register int i;
+
+    if(line < 0 || line > e->rows - 1) return;
+
+    for(i = 0; i < e->cols; i++) {
+        mvaddch(line, i, ' ');
+    }
+}
 /* Render text buffer from editor.
  */
 void editor_render(editor_t *e)
@@ -275,13 +287,11 @@ void editor_render(editor_t *e)
     }
 
     // Fill status bar.
-    for(x = 0; x < e->cols; x++) {
-        if(has_colors())
-            attron(COLOR_PAIR(STATUS_PAIR));
-        mvaddch(e->rows - 1, x, ' ');
-        if(has_colors())
-            attron(COLOR_PAIR(STATUS_PAIR));
-    }
+    if(has_colors())
+        attron(COLOR_PAIR(STATUS_PAIR));
+    editor_clearline(e, e->rows - 1);
+    if(has_colors())
+        attron(COLOR_PAIR(STATUS_PAIR));
 }
 
 /* ---------------------------- Main Functions ------------------------- */
@@ -662,7 +672,20 @@ int main(int argc, char *argv[])
 
         // Clear screen and repaint text.
         if(e.dirty) {
-            clear();
+            switch(c) {
+                case KEY_LEFT:
+                case KEY_RIGHT:
+                case KEY_HOME:
+                case KEY_END:
+                case KEY_PPAGE:
+                case KEY_NPAGE:
+                    clear();
+                break;
+                case KEY_UP:
+                case KEY_DOWN:
+                    editor_clearline(&e, e.cy);
+                break;
+            }
             editor_render(&e);
         }
 
