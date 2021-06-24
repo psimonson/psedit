@@ -15,6 +15,9 @@
 
 /* ---------------------------- Editor Stuff ------------------------- */
 
+#define EDITOR_PAIR 1
+#define STATUS_PAIR 2
+
 #define MAXSKIPROW 20
 
 typedef struct editor {
@@ -243,14 +246,41 @@ void editor_render(editor_t *e)
 {
     int x, y;
 
+    // Display the text on the screen from the editor buffer.
     for(y = 0; y < e->rows - 1; y++) {
         unsigned long startx = editor_getoffset(e, y + e->skiprows);
         unsigned long endx = editor_getoffset(e, (y + e->skiprows) + 1);
-        int size = endx - startx;
-        size = (size > 0 ? size : 0);
+        int size = ((endx - startx) > 0 ? (endx - startx) : 0);
         for(x = 0; x < size; x++) {
+            if(has_colors())
+                attron(COLOR_PAIR(EDITOR_PAIR));
             mvaddch(y, x - e->skipcols, e->data[startx + x]);
+            if(has_colors())
+                attron(COLOR_PAIR(EDITOR_PAIR));
         }
+    }
+
+    // Fill the rest of the editor with color.
+    for(y = 0; y < e->rows - 1; y++) {
+        unsigned long startx = editor_getoffset(e, y + e->skiprows);
+        unsigned long endx = editor_getoffset(e, (y + e->skiprows) + 1);
+        int size = ((endx - startx) > 0 ? (endx - startx) : 0);
+        for(x = size - 1; x < e->cols; x++) {
+            if(has_colors())
+                attron(COLOR_PAIR(EDITOR_PAIR));
+            mvaddch(y, x, ' ');
+            if(has_colors())
+                attroff(COLOR_PAIR(EDITOR_PAIR));
+        }
+    }
+
+    // Fill status bar.
+    for(x = 0; x < e->cols; x++) {
+        if(has_colors())
+            attron(COLOR_PAIR(STATUS_PAIR));
+        mvaddch(e->rows - 1, x, ' ');
+        if(has_colors())
+            attron(COLOR_PAIR(STATUS_PAIR));
     }
 }
 
@@ -272,6 +302,13 @@ static void ncurses_init(void)
     raw();
     keypad(stdscr, TRUE);
     atexit((void (*)(void))endwin);
+
+    // Initialize colors
+    if(has_colors()) {
+        start_color();
+        init_pair(EDITOR_PAIR, COLOR_RED, COLOR_WHITE);
+        init_pair(STATUS_PAIR, COLOR_WHITE, COLOR_RED);
+    }
 }
 /* Entry point for text editor.
  */
@@ -314,14 +351,39 @@ int main(int argc, char *argv[])
 
         // Handle keyboard input.
         switch(c) {
-            case CTRL_KEY('s'):
+            case CTRL_KEY('s'): {
+                char status[80];
+                int i, len;
+
+                if(has_colors())
+                    attron(COLOR_PAIR(STATUS_PAIR));
+
                 if(editor_save(&e, argv[1]) != 0) {
-                    mvprintw(e.rows - 1, 0, "Error: Saving file %s.\n",
-                        argv[1]);
+                    len = snprintf(status, sizeof(status),
+                        "Error: Saving file %s.", argv[1]);
                 }
-                mvprintw(e.rows - 1, 0, "Saving file %s totaling %ld bytes.\n",
-                    argv[1], e.size);
-            break;
+                else {
+                    len = snprintf(status, sizeof(status),
+                        "Saving file %s totaling %ld bytes.",
+                        argv[1], e.size - 1);
+                }
+
+                // Draw message to status bar.
+                mvprintw(e.rows - 1, 0, "%s", status);
+
+                // Fill rest of buffer with STATUS_PAIR color.
+                for(i = len; i < e.cols; i++) {
+                    if(has_colors())
+                        attron(COLOR_PAIR(STATUS_PAIR));
+                    mvaddch(e.rows - 1, i, ' ');
+                    if(has_colors())
+                        attroff(COLOR_PAIR(STATUS_PAIR));
+                }
+
+                if(has_colors())
+                    attroff(COLOR_PAIR(STATUS_PAIR));
+                refresh();
+            } break;
             case CTRL_KEY('f'):
                 // Find in file.
                 editor_find(&e, "find");
