@@ -23,12 +23,12 @@
 typedef struct editor {
     int cx, cy;
     int rows, cols;
-    int skipcols;
-    int skiprows;
-    int linecount;
+    long skipcols;
+    long skiprows;
+    long linecount;
     bool dirty;
     char *data;
-    long size;
+    long unsigned size;
 } editor_t;
 
 /* Initialise the editor structure.
@@ -56,9 +56,9 @@ void editor_free(editor_t *e)
 }
 /* Get line from given offset in file.
  */
-long editor_getline(editor_t *e, long offset)
+long unsigned editor_getline(editor_t *e, long unsigned offset)
 {
-    long i, nlines = 0;
+    long unsigned i, nlines = 0;
 
     for(i = 0; i < e->size && i != offset; i++) {
         if(e->data[i] == '\n')
@@ -68,9 +68,10 @@ long editor_getline(editor_t *e, long offset)
 }
 /* Get offset of given line in file.
  */
-long editor_getoffset(editor_t *e, int line_num)
+long unsigned editor_getoffset(editor_t *e, long line_num)
 {
-    long i, nlines = 0;
+    long nlines = 0;
+    long unsigned i;
 
     for(i = 0; i < e->size && line_num != nlines; i++) {
         if(e->data[i] == '\n')
@@ -82,7 +83,7 @@ long editor_getoffset(editor_t *e, int line_num)
  */
 void editor_getlinecount(editor_t *e)
 {
-    long i, nlines = 0;
+    long unsigned i, nlines = 0;
     for(i = 0; i < e->size; i++) {
         if(e->data[i] == '\n')
             nlines++;
@@ -98,9 +99,9 @@ void editor_find(editor_t *e, const char *string)
     // Search through the file.
     p = strstr(e->data, string);
     if(p != NULL) {
-        long offset = p - e->data;
+        long unsigned offset = p - e->data;
         long lines = editor_getline(e, offset);
-        long offset2;
+        long unsigned offset2;
 
         // Calculate cursor position in buffer.
         if(lines > e->rows) {
@@ -118,7 +119,7 @@ void editor_find(editor_t *e, const char *string)
  */
 int editor_open(editor_t *e, const char *filename)
 {
-    long total;
+    long unsigned total;
     FILE *fp;
 
     // Try to open file.
@@ -151,7 +152,7 @@ int editor_open(editor_t *e, const char *filename)
 int editor_save(editor_t *e, const char *filename)
 {
     char fname[512];
-    long total, size;
+    long unsigned total, size;
     char *buf;
     FILE *fp;
 
@@ -213,18 +214,18 @@ int editor_create(editor_t *e)
 }
 /* Delete a character from the editor buffer.
  */
-void editor_delchr(editor_t *e, long at)
+void editor_delchr(editor_t *e, long unsigned at)
 {
-    if(at < 0 || at > e->size) return;
+    if(at > e->size) return;
     memmove(&e->data[at], &e->data[at + 1], e->size-at);
     e->size--;
     editor_getlinecount(e);
 }
 /* Insert a character into the editor buffer.
  */
-static void _editor_inschr(editor_t *e, long at, char ch)
+static void _editor_inschr(editor_t *e, long unsigned at, char ch)
 {
-    if(at < 0 || at > e->size) at = e->size;
+    if(at > e->size) at = e->size;
     e->data = realloc(e->data, sizeof(char) * (e->size + 2));
     memmove(&e->data[at + 1], &e->data[at], e->size-at+1);
     e->data[at] = ch;
@@ -232,7 +233,7 @@ static void _editor_inschr(editor_t *e, long at, char ch)
 }
 /* Insert a character into the editor buffer with automatic new line.
  */
-void editor_inschr(editor_t *e, long at, char ch)
+void editor_inschr(editor_t *e, long unsigned at, char ch)
 {
     if(e->linecount == 0) {
         _editor_inschr(e, at, '\n');
@@ -244,13 +245,17 @@ void editor_inschr(editor_t *e, long at, char ch)
  */
 void editor_render(editor_t *e)
 {
-    int x, y;
+    register int x, y;
+    long unsigned startx, endx;
+    long size;
 
     // Display the text on the screen from the editor buffer.
     for(y = 0; y < e->rows - 1; y++) {
-        unsigned long startx = editor_getoffset(e, y + e->skiprows);
-        unsigned long endx = editor_getoffset(e, (y + e->skiprows) + 1);
-        int size = ((endx - startx) > 0 ? (endx - startx) : 0);
+        startx = editor_getoffset(e, y + e->skiprows);
+        endx = editor_getoffset(e, (y + e->skiprows) + 1);
+        size = ((endx - startx) > 0 ? (endx - startx) : 0);
+
+        // Render line of text to screen.
         for(x = 0; x < size; x++) {
             if(has_colors())
                 attron(COLOR_PAIR(EDITOR_PAIR));
@@ -258,13 +263,8 @@ void editor_render(editor_t *e)
             if(has_colors())
                 attron(COLOR_PAIR(EDITOR_PAIR));
         }
-    }
 
-    // Fill the rest of the editor with color.
-    for(y = 0; y < e->rows - 1; y++) {
-        unsigned long startx = editor_getoffset(e, y + e->skiprows);
-        unsigned long endx = editor_getoffset(e, (y + e->skiprows) + 1);
-        int size = ((endx - startx) > 0 ? (endx - startx) : 0);
+        // Fill the rest of the line with blanks.
         for(x = (size - 1) - e->skipcols; x < e->cols; x++) {
             if(has_colors())
                 attron(COLOR_PAIR(EDITOR_PAIR));
@@ -314,8 +314,7 @@ static void ncurses_init(void)
  */
 int main(int argc, char *argv[])
 {
-    unsigned long offset;
-    long curline;
+    long unsigned offset;
     editor_t e;
     int rc, c;
 
