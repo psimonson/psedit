@@ -265,7 +265,7 @@ void editor_render(editor_t *e)
         unsigned long startx = editor_getoffset(e, y + e->skiprows);
         unsigned long endx = editor_getoffset(e, (y + e->skiprows) + 1);
         int size = ((endx - startx) > 0 ? (endx - startx) : 0);
-        for(x = size - 1; x < e->cols; x++) {
+        for(x = (size - 1) - e->skipcols; x < e->cols; x++) {
             if(has_colors())
                 attron(COLOR_PAIR(EDITOR_PAIR));
             mvaddch(y, x, ' ');
