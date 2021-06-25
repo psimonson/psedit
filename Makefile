@@ -35,7 +35,7 @@ install: all
 
 install-doc:
 	mkdir -p $(DESTDIR)/$(PREFIX)/share/man/man1
-	install -g 0 -o 0 -m 0644 doc/psedit.1 $(DESTDIR)/$(PREFIX)/share/man/man1
+	install -g 0 -o 0 -m 644 doc/psedit.1 $(DESTDIR)/$(PREFIX)/share/man/man1
 	gzip $(DESTDIR)/$(PREFIX)/share/man/man1/psedit.1
 
 install-all: install install-doc
