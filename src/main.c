@@ -675,25 +675,14 @@ int main(int argc, char *argv[])
 
         // Clear screen and repaint text.
         if(e.dirty) {
-            switch(c) {
-                case KEY_UP:
-                case KEY_DOWN:
-                case KEY_BACKSPC:
-                case KEY_DC:
-                    editor_clearline(&e, e.cy);
-                break;
-                default:
-                    clear();
-            }
+            clear();
             editor_render(&e);
-        }
-
-        // Move cursor and refresh screen.
-        move(e.cy, e.cx);
-        if(e.dirty) {
             refresh();
             e.dirty = false;
         }
+
+        // Move cursor.
+        move(e.cy, e.cx);
     }
 
     editor_free(&e);
