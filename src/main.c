@@ -241,11 +241,23 @@ void editor_inschr(editor_t *e, long unsigned at, char ch)
     _editor_inschr(e, at, ch);
     editor_getlinecount(e);
 }
+/* Delete a line of text from the buffer.
+ */
+void editor_deleteline(editor_t *e, long line)
+{
+    long unsigned startx = editor_getoffset(e, line);
+    long unsigned endx = editor_getoffset(e, line + 1);
+    unsigned i;
+
+    for(i = 0; i < (endx - startx); i++) {
+        editor_delchr(e, startx);
+    }
+}
 /* Clear a line on the screen.
  */
-void editor_clearline(editor_t *e, int line)
+void editor_clearline(editor_t *e, long line)
 {
-    register int i;
+    register long i;
 
     if(line < 0 || line > e->rows - 1) return;
 
@@ -395,8 +407,15 @@ int main(int argc, char *argv[])
             } break;
             case CTRL_KEY('f'):
                 // Find in file.
-                editor_find(&e, "find");
-                e.dirty = true;
+//                editor_find(&e, "find");
+//                e.dirty = true;
+            break;
+            case CTRL_KEY('k'):
+                // Delete current line.
+                if(e.linecount > 0) {
+                    editor_deleteline(&e, e.cy + e.skiprows);
+                    e.dirty = true;
+                }
             break;
             case KEY_UP:
                 if(e.cy != 0) {
