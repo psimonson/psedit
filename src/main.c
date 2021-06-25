@@ -594,7 +594,10 @@ int main(int argc, char *argv[])
                         e.skipcols = 0;
                         e.cx = len > 0 ? len - 1 : 0;
                     }
-                    e.cy--;
+                    if(e.cy > 0)
+                        e.cy--;
+                    else
+                        e.skiprows--;
                     editor_delchr(&e, startx + (e.cx + e.skipcols));
                 }
                 else if((e.cx + e.skipcols) == 0 && (e.cy + e.skiprows) == 0 &&
@@ -673,18 +676,14 @@ int main(int argc, char *argv[])
         // Clear screen and repaint text.
         if(e.dirty) {
             switch(c) {
-                case KEY_LEFT:
-                case KEY_RIGHT:
-                case KEY_HOME:
-                case KEY_END:
-                case KEY_PPAGE:
-                case KEY_NPAGE:
-                    clear();
-                break;
                 case KEY_UP:
                 case KEY_DOWN:
+                case KEY_BACKSPC:
+                case KEY_DC:
                     editor_clearline(&e, e.cy);
                 break;
+                default:
+                    clear();
             }
             editor_render(&e);
         }
