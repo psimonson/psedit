@@ -582,6 +582,7 @@ int main(int argc, char *argv[])
                 }
                 e.dirty = true;
             break;
+            case KEY_BACKSPACE:
             case KEY_BACKSPC:
                 startx = editor_getoffset(&e, e.cy + e.skiprows);
                 endx = editor_getoffset(&e, (e.cy + e.skiprows) + 1);
