@@ -386,7 +386,7 @@ int main(int argc, char *argv[])
                 else {
                     len = snprintf(status, sizeof(status),
                         "Saving file %s totaling %ld bytes.",
-                        argv[1], e.size - 1);
+                        argv[1], e.size);
                 }
 
                 // Draw message to status bar.
@@ -414,6 +414,8 @@ int main(int argc, char *argv[])
                 // Delete current line.
                 if(e.linecount > 0) {
                     editor_deleteline(&e, e.cy + e.skiprows);
+                    e.skipcols = 0;
+                    e.cx = 0;
                     e.dirty = true;
                 }
             break;
@@ -577,7 +579,7 @@ int main(int argc, char *argv[])
                 endx = editor_getoffset(&e, (e.cy + e.skiprows) + 1);
                 if((e.cx + e.skipcols) >= 0 &&
                     (e.cx + e.skipcols) <= (endx - startx) &&
-                    (e.cy + e.skiprows) < e.linecount) {
+                    (e.cy + e.skiprows) <= e.linecount) {
                     editor_delchr(&e, startx + (e.cx + e.skipcols));
                 }
                 e.dirty = true;
