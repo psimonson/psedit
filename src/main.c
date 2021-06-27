@@ -235,7 +235,10 @@ static void _editor_inschr(editor_t *e, long unsigned at, char ch)
  */
 void editor_inschr(editor_t *e, long unsigned at, char ch)
 {
-    if(e->linecount == 0) {
+    long unsigned startx = editor_getoffset(e, e->cy + e->skiprows);
+    long unsigned endx = editor_getoffset(e, (e->cy + e->skiprows) + 1);
+
+    if(e->linecount == 0 || (endx - startx) == 0) {
         _editor_inschr(e, at, '\n');
     }
     _editor_inschr(e, at, ch);
