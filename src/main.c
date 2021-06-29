@@ -564,8 +564,8 @@ int main(int argc, char *argv[])
             case KEY_END:
                 startx = editor_getoffset(&e, e.cy + e.skiprows);
                 endx = editor_getoffset(&e, (e.cy + e.skiprows) + 1);
-                if(e.cx < (e.cols - 1) &&
-                    (e.cx + e.skipcols) < (endx - startx) - 1) {
+                if(e.cx <= (e.cols - 1) &&
+                    (e.cx + e.skipcols) < (endx - startx)) {
                     int len = (endx - startx) - 1;
                     int skipcols = len - e.cols + 1;
                     int skipcx = (len - skipcols) % e.cols;
