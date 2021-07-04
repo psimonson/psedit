@@ -17,6 +17,7 @@ is a list of the keyboard shortcuts.
  - Delete and backspace keys.
  - Arrow keys for navigation through the buffer.
  - Home and end keys for the start and end of line.
+ - Searching through the file.
  - Return and tabstop keys.
  - Lastly file saving.
 ============================================================
@@ -24,6 +25,7 @@ is a list of the keyboard shortcuts.
 ============================================================
  Ctrl+Q - Quit the text editor.
  Ctrl+S - Save the current file.
+ Ctrl+F - Find in current file.
 ============================================================
                        KNOWN BUGS
 ============================================================

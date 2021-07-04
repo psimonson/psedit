@@ -28,6 +28,7 @@ typedef struct editor {
     long linecount;
     bool dirty;
     char *data;
+    long unsigned find;
     long unsigned size;
 } editor_t;
 
@@ -43,6 +44,7 @@ editor_t editor_init(void)
     e.skipcols = 0;
     e.skiprows = 0;
     e.linecount = 0;
+    e.find = 0;
     e.dirty = true;
     e.data = NULL;
     e.size = 0;
@@ -90,14 +92,72 @@ void editor_getlinecount(editor_t *e)
     }
     e->linecount = nlines;
 }
+/* Get query string for searching.
+ */
+char *editor_findprompt(editor_t *e, const char *string)
+{
+    static char query[80];
+    int c, i, cx, cy, newx, newy;
+
+    // Save original cx and cy
+    cx = e->cx;
+    cy = e->cy;
+    if(has_colors())
+        attron(COLOR_PAIR(STATUS_PAIR));
+    mvprintw(e->rows - 1, 0, "Find: ");
+    if(has_colors())
+        attroff(COLOR_PAIR(STATUS_PAIR));
+    getyx(stdscr, newy, newx);
+
+    // Get string
+    for(i = 0; i < 80 && (c = getch()) != '\n'; ) {
+        if(c == '\x1b') {
+            return NULL;
+        }
+        else if(c == KEY_BACKSPACE || c == 127) {
+            if(i > 0) {
+                query[--i] = '\0';
+                if(has_colors())
+                    attron(COLOR_PAIR(STATUS_PAIR));
+                mvaddch(newy, --newx, ' ');
+                if(has_colors())
+                    attroff(COLOR_PAIR(STATUS_PAIR));
+                move(newy, newx);
+            }
+        }
+        else {
+            if(i < 79) {
+                query[i++] = c;
+                if(has_colors())
+                    attron(COLOR_PAIR(STATUS_PAIR));
+                mvaddch(newy, newx++, c);
+                if(has_colors())
+                    attroff(COLOR_PAIR(STATUS_PAIR));
+            }
+        }
+    }
+    query[i] = '\0';
+
+    // Restore cx and cy
+    e->cx = cx;
+    e->cy = cy;
+    return query;
+}
 /* Search through a file with the editor.
  */
-void editor_find(editor_t *e, const char *string)
+void editor_find(editor_t *e)
 {
-    char *p;
+    char *p, *query;
+
+    query = editor_findprompt(e, "Find: ");
+    if(query == NULL) return;
 
     // Search through the file.
-    p = strstr(e->data, string);
+    if(e->find >= e->size - 1) {
+        e->find = 0;
+    }
+
+    p = strstr(&e->data[e->find], query);
     if(p != NULL) {
         long unsigned offset = p - e->data;
         long lines = editor_getline(e, offset);
@@ -113,6 +173,7 @@ void editor_find(editor_t *e, const char *string)
         e->cy = lines - e->skiprows;
         offset2 = editor_getoffset(e, e->cy + e->skiprows);
         e->cx = offset - offset2;
+        e->find = offset2 + strlen(query);
     }
 }
 /* Open a file with the editor.
@@ -410,8 +471,8 @@ int main(int argc, char *argv[])
             } break;
             case CTRL_KEY('f'):
                 // Find in file.
-//                editor_find(&e, "find");
-//                e.dirty = true;
+                editor_find(&e);
+                e.dirty = true;
             break;
             case CTRL_KEY('k'):
                 // Delete current line.
