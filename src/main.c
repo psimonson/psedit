@@ -158,6 +158,7 @@ void editor_find(editor_t *e)
     }
 
     p = strstr(&e->data[e->find], query);
+    if(p == NULL) e->find = 0;
     if(p != NULL) {
         long unsigned offset = p - e->data;
         long lines = editor_getline(e, offset);
@@ -173,7 +174,7 @@ void editor_find(editor_t *e)
         e->cy = lines - e->skiprows;
         offset2 = editor_getoffset(e, e->cy + e->skiprows);
         e->cx = offset - offset2;
-        e->find = offset2 + strlen(query);
+        e->find = (e->cy >= (e->rows - 2)) ? offset2 + strlen(query) : offset + strlen(query);
     }
 }
 /* Open a file with the editor.
