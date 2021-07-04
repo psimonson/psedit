@@ -92,6 +92,18 @@ void editor_getlinecount(editor_t *e)
     }
     e->linecount = nlines;
 }
+/* Convert CR/LF in to LF.
+ */
+void editor_convnewline(editor_t *e)
+{
+    extern void editor_delchr(editor_t *e, long unsigned at);
+    long unsigned i;
+
+    for(i = 0; i < e->size; i++) {
+        if(e->data[i] == '\r')
+            editor_delchr(e, i);
+    }
+}
 /* Get query string for searching.
  */
 char *editor_findprompt(editor_t *e, const char *string)
@@ -419,6 +431,9 @@ int main(int argc, char *argv[])
             fprintf(stderr, "Error: New buffer cannot be created.\n");
             return 1;
         }
+    }
+    else {
+        editor_convnewline(&e);
     }
     editor_getlinecount(&e);
     ncurses_init();
