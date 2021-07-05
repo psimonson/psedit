@@ -26,6 +26,7 @@ is a list of the keyboard shortcuts.
  Ctrl+Q - Quit the text editor.
  Ctrl+S - Save the current file.
  Ctrl+F - Find in current file.
+ F3     - Find next in current file.
 ============================================================
                        KNOWN BUGS
 ============================================================

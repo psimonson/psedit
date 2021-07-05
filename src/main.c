@@ -28,6 +28,7 @@ typedef struct editor {
     long linecount;
     bool dirty;
     char *data;
+    char *findstr;
     long unsigned find;
     long unsigned size;
 } editor_t;
@@ -45,6 +46,7 @@ editor_t editor_init(void)
     e.skiprows = 0;
     e.linecount = 0;
     e.find = 0;
+    e.findstr = NULL;
     e.dirty = true;
     e.data = NULL;
     e.size = 0;
@@ -157,12 +159,9 @@ char *editor_findprompt(editor_t *e, const char *string)
 }
 /* Search through a file with the editor.
  */
-void editor_find(editor_t *e)
+void editor_find(editor_t *e, const char *query)
 {
-    char *p, *query;
-
-    query = editor_findprompt(e, "Find: ");
-    if(query == NULL) return;
+    char *p;
 
     // Search through the file.
     if(e->find >= e->size - 1) {
@@ -488,7 +487,11 @@ int main(int argc, char *argv[])
             } break;
             case CTRL_KEY('f'):
                 // Find in file.
-                editor_find(&e);
+                e.find = 0;
+                e.findstr = editor_findprompt(&e, "Find: ");
+                if(e.findstr != NULL) {
+                    editor_find(&e, e.findstr);
+                }
                 e.dirty = true;
             break;
             case CTRL_KEY('k'):
@@ -499,6 +502,13 @@ int main(int argc, char *argv[])
                     e.cx = 0;
                     e.dirty = true;
                 }
+            break;
+            case KEY_F(3):
+                // Find next in file.
+                if(e.findstr != NULL) {
+                    editor_find(&e, e.findstr);
+                }
+                e.dirty = true;
             break;
             case KEY_UP:
                 if(e.cy != 0) {
