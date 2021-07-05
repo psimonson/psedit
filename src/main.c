@@ -176,7 +176,7 @@ void editor_find(editor_t *e, const char *query)
         long unsigned offset2;
 
         // Calculate cursor position in buffer.
-        if(lines > e->rows) {
+        if(lines >= (e->rows - 2)) {
             e->skiprows = lines - (e->rows - 2);
         }
         else {
@@ -186,7 +186,7 @@ void editor_find(editor_t *e, const char *query)
         offset2 = editor_getoffset(e, e->cy + e->skiprows);
         e->skipcols = (long)(offset - offset2) >= e->cols ? ((offset - offset2) - (e->cols - 1)) + strlen(query) : 0;
         e->cx = (long)(offset - offset2) >= e->cols ? ((offset - offset2) - e->skipcols) % e->cols : (offset - offset2);
-        e->find = e->cy >= (e->rows - 2) ? offset2 + strlen(query) : offset + strlen(query);
+        e->find = offset + strlen(query);
     }
 }
 /* Open a file with the editor.
