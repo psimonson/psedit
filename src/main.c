@@ -140,7 +140,7 @@ char *editor_findprompt(editor_t *e, const char *string)
             }
         }
         else {
-            if(i < 79) {
+            if(i < 80 && i < (e->cols - 7) && isprint(c)) {
                 query[i++] = c;
                 if(has_colors())
                     attron(COLOR_PAIR(STATUS_PAIR));
