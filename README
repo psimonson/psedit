@@ -27,6 +27,7 @@ is a list of the keyboard shortcuts.
  Ctrl+S - Save the current file.
  Ctrl+F - Find in current file.
  F3     - Find next in current file.
+ F5     - Convert tabs to spaces and back again.
 ============================================================
                        KNOWN BUGS
 ============================================================

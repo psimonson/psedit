@@ -19,6 +19,7 @@
 #define STATUS_PAIR 2
 
 #define MAXSKIPROW 20
+#define MAXTABSTOP 4
 
 typedef struct editor {
     int cx, cy;
@@ -104,6 +105,47 @@ void editor_convnewline(editor_t *e)
     for(i = 0; i < e->size; i++) {
         if(e->data[i] == '\r')
             editor_delchr(e, i);
+    }
+}
+/* Convert tabs to spaces and back again.
+ */
+void editor_convtab(editor_t *e, bool totab)
+{
+    extern void editor_inschr(editor_t *e, long unsigned at, char ch);
+    extern void editor_delchr(editor_t *e, long unsigned at);
+    long unsigned i;
+
+    for(i = 0; i < e->size; i++) {
+        if(e->size > 2) {
+            if(totab) { // Convert to tabs.
+                if(e->data[i] == '\n' && e->data[i + 1] == ' ') {
+                    short unsigned spaces = 0;
+                    while(e->data[i + 1] == ' ') {
+                        ++spaces;
+                        editor_delchr(e, i + 1);
+                        if(spaces == MAXTABSTOP) {
+                            spaces = 0;
+                            editor_inschr(e, i + 1, '\t');
+                            ++i;
+                        }
+                    }
+                }
+            }
+            else { // Convert to spaces.
+                if(e->data[i] == '\n' && e->data[i + 1] == '\t') {
+                    short unsigned spaces = 0;
+                    while(e->data[i + 1] == '\t') {
+                        short unsigned spaces = 0;
+                        editor_delchr(e, i + 1);
+                        while(spaces < MAXTABSTOP) {
+                            editor_inschr(e, i + 1, ' ');
+                            ++spaces;
+                        }
+                        i += spaces;
+                    }
+                }
+            }
+        }
     }
 }
 /* Get query string for searching.
@@ -385,7 +427,6 @@ void editor_render(editor_t *e)
 
 /* ---------------------------- Main Functions ------------------------- */
 
-#define MAXTABSTOP 4
 #define CTRL_KEY(x) ((x) & 0x1F)
 #define KEY_RETURN 0x0A
 #define KEY_TABSTOP 0x09
@@ -414,6 +455,7 @@ static void ncurses_init(void)
 int main(int argc, char *argv[])
 {
     long unsigned offset;
+    bool istab;
     editor_t e;
     int rc, c;
 
@@ -434,7 +476,9 @@ int main(int argc, char *argv[])
     }
     else {
         editor_convnewline(&e);
+        editor_convtab(&e, false);
     }
+    istab = false;
     editor_getlinecount(&e);
     ncurses_init();
     getmaxyx(stdscr, e.rows, e.cols);
@@ -508,6 +552,12 @@ int main(int argc, char *argv[])
                 if(e.findstr != NULL) {
                     editor_find(&e, e.findstr);
                 }
+                e.dirty = true;
+            break;
+            case KEY_F(5):
+                // Convert tabs to spaces and back again.
+                istab = !istab;
+                editor_convtab(&e, istab);
                 e.dirty = true;
             break;
             case KEY_UP:
