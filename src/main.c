@@ -384,6 +384,23 @@ void editor_clearline(editor_t *e, long line)
         mvaddch(line, i, ' ');
     }
 }
+/* Render a line of text on the screen.
+ */
+void editor_renderline(editor_t *e, long line)
+{
+    long unsigned startx = editor_getoffset(e, line + e->skiprows);
+    long unsigned endx = editor_getoffset(e, (line + e->skiprows) + 1);
+    long size = (endx - startx) > 0 ? (endx - startx) : 0;
+    register long i, j;
+
+    if(line < 0 || line > e->rows - 1) return;
+
+    for(i = 0; i < size; i++) {
+        mvaddch(line, i - e->skipcols, e->data[startx + i]);
+        for(j = size - 1 - e->skipcols; j < e->cols; j++)
+            mvaddch(line, j, ' ');
+    }
+}
 /* Render text buffer from editor.
  */
 void editor_render(editor_t *e)
@@ -394,27 +411,13 @@ void editor_render(editor_t *e)
 
     // Display the text on the screen from the editor buffer.
     for(y = 0; y < e->rows - 1; y++) {
-        startx = editor_getoffset(e, y + e->skiprows);
-        endx = editor_getoffset(e, (y + e->skiprows) + 1);
-        size = ((endx - startx) > 0 ? (endx - startx) : 0);
-
         // Render line of text to screen.
-        for(x = 0; x < size; x++) {
-            if(has_colors())
-                attron(COLOR_PAIR(EDITOR_PAIR));
-            mvaddch(y, x - e->skipcols, e->data[startx + x]);
-            if(has_colors())
-                attron(COLOR_PAIR(EDITOR_PAIR));
-        }
-
-        // Fill the rest of the line with blanks.
-        for(x = (size - 1) - e->skipcols; x < e->cols; x++) {
-            if(has_colors())
-                attron(COLOR_PAIR(EDITOR_PAIR));
-            mvaddch(y, x, ' ');
-            if(has_colors())
-                attroff(COLOR_PAIR(EDITOR_PAIR));
-        }
+        if(has_colors())
+            attron(COLOR_PAIR(EDITOR_PAIR));
+        editor_clearline(e, y);
+        editor_renderline(e, y);
+        if(has_colors())
+            attron(COLOR_PAIR(EDITOR_PAIR));
     }
 
     // Fill status bar.
@@ -838,7 +841,6 @@ int main(int argc, char *argv[])
 
         // Clear screen and repaint text.
         if(e.dirty) {
-            clear();
             editor_render(&e);
             refresh();
             e.dirty = false;
