@@ -28,6 +28,8 @@ typedef struct editor {
     long skiprows;
     long linecount;
     bool dirty;
+    bool status_on;
+    char status[80];
     char *data;
     char *findstr;
     long unsigned find;
@@ -48,9 +50,11 @@ editor_t editor_init(void)
     e.linecount = 0;
     e.find = 0;
     e.findstr = NULL;
+    e.status_on = false;
     e.dirty = true;
     e.data = NULL;
     e.size = 0;
+    memset(e.status, 0, sizeof(e.status));
     return e;
 }
 /* Destroy editor data.
@@ -152,15 +156,18 @@ void editor_convtab(editor_t *e, bool totab)
  */
 char *editor_findprompt(editor_t *e, const char *string)
 {
+    void editor_setstatus(editor_t *e, const char *fmt, ...);
+    void editor_renderstatus(editor_t *e);
     static char query[80];
     int c, i, cx, cy, newx, newy;
 
     // Save original cx and cy
     cx = e->cx;
     cy = e->cy;
+    editor_setstatus(e, "Find: ");
     if(has_colors())
         attron(COLOR_PAIR(STATUS_PAIR));
-    mvprintw(e->rows - 1, 0, "Find: ");
+    editor_renderstatus(e);
     if(has_colors())
         attroff(COLOR_PAIR(STATUS_PAIR));
     getyx(stdscr, newy, newx);
@@ -419,13 +426,22 @@ void editor_render(editor_t *e)
         if(has_colors())
             attron(COLOR_PAIR(EDITOR_PAIR));
     }
-
-    // Fill status bar.
-    if(has_colors())
-        attron(COLOR_PAIR(STATUS_PAIR));
+}
+/* Set status message for editor.
+ */
+void editor_setstatus(editor_t *e, const char *fmt, ...)
+{
+    va_list ap;
+    va_start(ap, fmt);
+    vsnprintf(e->status, sizeof(e->status), fmt, ap);
+    va_end(ap);
+}
+/* Render status message on screen.
+ */
+void editor_renderstatus(editor_t *e)
+{
     editor_clearline(e, e->rows - 1);
-    if(has_colors())
-        attron(COLOR_PAIR(STATUS_PAIR));
+    mvprintw(e->rows - 1, 0, e->status);
 }
 
 /* ---------------------------- Main Functions ------------------------- */
@@ -487,7 +503,13 @@ int main(int argc, char *argv[])
     getmaxyx(stdscr, e.rows, e.cols);
     clear();
     editor_render(&e);
-    refresh();
+    editor_setstatus(&e, "Ctrl-Q: Exit | Ctrl-S: Save | Ctrl-F: Find "
+        "| F3: Find Next | F5: Convert Tabs/Spaces");
+    if(has_colors())
+        attron(COLOR_PAIR(STATUS_PAIR));
+    editor_renderstatus(&e);
+    if(has_colors())
+        attroff(COLOR_PAIR(STATUS_PAIR));
     move(e.cy, e.cx);
 
     while((c = getch()) != CTRL_KEY('q')) {
@@ -517,20 +539,20 @@ int main(int argc, char *argv[])
                 }
 
                 // Draw message to status bar.
-                mvprintw(e.rows - 1, 0, "%s", status);
+                if(has_colors())
+                    attron(COLOR_PAIR(STATUS_PAIR));
+                editor_setstatus(&e, "%s", status);
+                editor_renderstatus(&e);
 
                 // Fill rest of buffer with STATUS_PAIR color.
                 for(i = len; i < e.cols; i++) {
-                    if(has_colors())
-                        attron(COLOR_PAIR(STATUS_PAIR));
                     mvaddch(e.rows - 1, i, ' ');
-                    if(has_colors())
-                        attroff(COLOR_PAIR(STATUS_PAIR));
                 }
 
                 if(has_colors())
                     attroff(COLOR_PAIR(STATUS_PAIR));
                 refresh();
+                e.status_on = true;
             } break;
             case CTRL_KEY('f'):
                 // Find in file.
@@ -845,6 +867,21 @@ int main(int argc, char *argv[])
             refresh();
             e.dirty = false;
         }
+
+        // Render status message.
+        if(!e.status_on) {
+            if(has_colors())
+                attron(COLOR_PAIR(STATUS_PAIR));
+            editor_setstatus(&e, "[%s] - Lines: %ld/%ld",
+                argv[1], (e.cy + e.skiprows) + 1, e.linecount);
+            editor_renderstatus(&e);
+            if(has_colors())
+                attroff(COLOR_PAIR(STATUS_PAIR));
+        }
+
+        // Reset status message.
+        if(e.status_on)
+            e.status_on = false;
 
         // Move cursor.
         move(e.cy, e.cx);
