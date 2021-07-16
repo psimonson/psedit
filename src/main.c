@@ -873,7 +873,8 @@ int main(int argc, char *argv[])
             if(has_colors())
                 attron(COLOR_PAIR(STATUS_PAIR));
             editor_setstatus(&e, "[%s] - Lines: %ld/%ld",
-                argv[1], (e.cy + e.skiprows) + 1, e.linecount);
+                argv[1], e.linecount != 0 ? (e.cy + e.skiprows) + 1 : 0,
+                e.linecount);
             editor_renderstatus(&e);
             if(has_colors())
                 attroff(COLOR_PAIR(STATUS_PAIR));
