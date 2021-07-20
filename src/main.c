@@ -218,7 +218,12 @@ void editor_find(editor_t *e, const char *query)
     }
 
     p = strstr(&e->data[e->find], query);
-    if(p == NULL) e->find = 0;
+
+    if(p == NULL) {
+        e->find = 0;
+        p = strstr(&e->data[e->find], query);
+    }
+
     if(p != NULL) {
         long unsigned offset = p - e->data;
         long lines = editor_getline(e, offset);
@@ -381,13 +386,14 @@ void editor_deleteline(editor_t *e, long line)
 }
 /* Clear a line on the screen.
  */
-void editor_clearline(editor_t *e, long line)
+void editor_clearline(editor_t *e, long line, long col)
 {
     register long i;
 
     if(line < 0 || line > e->rows - 1) return;
+    if(col < 0 || col > e->cols - 1) return;
 
-    for(i = 0; i < e->cols; i++) {
+    for(i = col; i < e->cols; i++) {
         mvaddch(line, i, ' ');
     }
 }
@@ -397,22 +403,22 @@ void editor_renderline(editor_t *e, long line)
 {
     long unsigned startx = editor_getoffset(e, line + e->skiprows);
     long unsigned endx = editor_getoffset(e, (line + e->skiprows) + 1);
-    long size = (endx - startx) > 0 ? (endx - startx) : 0;
+    long size = (endx - startx) > 0 ? (endx - startx) - 1 : 0;
     register long i, j;
 
     if(line < 0 || line > e->rows - 1) return;
 
-    for(i = 0; i < size; i++) {
+    editor_clearline(e, line, 0);
+    for(i = 0; i < size && e->data[startx + i] != '\n'; i++) {
         mvaddch(line, i - e->skipcols, e->data[startx + i]);
-        for(j = size - 1 - e->skipcols; j < e->cols; j++)
-            mvaddch(line, j, ' ');
     }
+    editor_clearline(e, line, size - e->skipcols);
 }
 /* Render text buffer from editor.
  */
 void editor_render(editor_t *e)
 {
-    register int x, y;
+    int x, y;
     long unsigned startx, endx;
     long size;
 
@@ -421,7 +427,6 @@ void editor_render(editor_t *e)
         // Render line of text to screen.
         if(has_colors())
             attron(COLOR_PAIR(EDITOR_PAIR));
-        editor_clearline(e, y);
         editor_renderline(e, y);
         if(has_colors())
             attron(COLOR_PAIR(EDITOR_PAIR));
@@ -440,7 +445,7 @@ void editor_setstatus(editor_t *e, const char *fmt, ...)
  */
 void editor_renderstatus(editor_t *e)
 {
-    editor_clearline(e, e->rows - 1);
+    editor_clearline(e, e->rows - 1, 0);
     mvprintw(e->rows - 1, 0, e->status);
 }
 
