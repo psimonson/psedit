@@ -137,7 +137,6 @@ void editor_convtab(editor_t *e, bool totab)
             }
             else { // Convert to spaces.
                 if(e->data[i] == '\n' && e->data[i + 1] == '\t') {
-                    short unsigned spaces = 0;
                     while(e->data[i + 1] == '\t') {
                         short unsigned spaces = 0;
                         editor_delchr(e, i + 1);
@@ -404,32 +403,32 @@ void editor_renderline(editor_t *e, long line)
     long unsigned startx = editor_getoffset(e, line + e->skiprows);
     long unsigned endx = editor_getoffset(e, (line + e->skiprows) + 1);
     long size = (endx - startx) > 0 ? (endx - startx) - 1 : 0;
-    register long i, j;
+    register long i;
 
     if(line < 0 || line > e->rows - 1) return;
+
+    if(has_colors())
+        attron(COLOR_PAIR(EDITOR_PAIR));
 
     editor_clearline(e, line, 0);
     for(i = 0; i < size && e->data[startx + i] != '\n'; i++) {
         mvaddch(line, i - e->skipcols, e->data[startx + i]);
     }
     editor_clearline(e, line, size - e->skipcols);
+
+    if(has_colors())
+        attron(COLOR_PAIR(EDITOR_PAIR));
 }
 /* Render text buffer from editor.
  */
 void editor_render(editor_t *e)
 {
-    int x, y;
-    long unsigned startx, endx;
-    long size;
+    int y;
 
     // Display the text on the screen from the editor buffer.
     for(y = 0; y < e->rows - 1; y++) {
         // Render line of text to screen.
-        if(has_colors())
-            attron(COLOR_PAIR(EDITOR_PAIR));
         editor_renderline(e, y);
-        if(has_colors())
-            attron(COLOR_PAIR(EDITOR_PAIR));
     }
 }
 /* Set status message for editor.
@@ -445,8 +444,12 @@ void editor_setstatus(editor_t *e, const char *fmt, ...)
  */
 void editor_renderstatus(editor_t *e)
 {
+    if(has_colors())
+        attron(COLOR_PAIR(STATUS_PAIR));
     editor_clearline(e, e->rows - 1, 0);
     mvprintw(e->rows - 1, 0, e->status);
+    if(has_colors())
+        attroff(COLOR_PAIR(STATUS_PAIR));
 }
 
 /* ---------------------------- Main Functions ------------------------- */
@@ -478,10 +481,9 @@ static void ncurses_init(void)
  */
 int main(int argc, char *argv[])
 {
-    long unsigned offset;
     bool istab;
     editor_t e;
-    int rc, c;
+    int c;
 
     // Take a filename as an argument.
     if(argc != 2) {
@@ -509,12 +511,8 @@ int main(int argc, char *argv[])
     clear();
     editor_render(&e);
     editor_setstatus(&e, "Ctrl-Q: Exit | Ctrl-S: Save | Ctrl-F: Find "
-        "| F3: Find Next | F5: Convert Tabs/Spaces");
-    if(has_colors())
-        attron(COLOR_PAIR(STATUS_PAIR));
+        "| F3: Find Next | F5: Convert Tabs");
     editor_renderstatus(&e);
-    if(has_colors())
-        attroff(COLOR_PAIR(STATUS_PAIR));
     move(e.cy, e.cx);
 
     while((c = getch()) != CTRL_KEY('q')) {
@@ -528,10 +526,7 @@ int main(int argc, char *argv[])
         switch(c) {
             case CTRL_KEY('s'): {
                 char status[80];
-                int i, len;
-
-                if(has_colors())
-                    attron(COLOR_PAIR(STATUS_PAIR));
+                int len;
 
                 if(editor_save(&e, argv[1]) != 0) {
                     len = snprintf(status, sizeof(status),
@@ -544,16 +539,13 @@ int main(int argc, char *argv[])
                 }
 
                 // Draw message to status bar.
-                if(has_colors())
-                    attron(COLOR_PAIR(STATUS_PAIR));
                 editor_setstatus(&e, "%s", status);
                 editor_renderstatus(&e);
 
                 // Fill rest of buffer with STATUS_PAIR color.
-                for(i = len; i < e.cols; i++) {
-                    mvaddch(e.rows - 1, i, ' ');
-                }
-
+                if(has_colors())
+                    attron(COLOR_PAIR(STATUS_PAIR));
+                editor_clearline(&e, e.rows - 1, len);
                 if(has_colors())
                     attroff(COLOR_PAIR(STATUS_PAIR));
                 refresh();
@@ -796,7 +788,7 @@ int main(int argc, char *argv[])
                 else if((e.cx + e.skipcols) == 0 && (e.cy + e.skiprows) == 0 &&
                     (e.cy + e.skiprows) < e.linecount) {
                     if(e.skiprows > 0) {
-                        int len, skipcols;
+                        int len;
 
                         e.skiprows--;
                         startx = editor_getoffset(&e, e.cy + e.skiprows);
@@ -875,14 +867,10 @@ int main(int argc, char *argv[])
 
         // Render status message.
         if(!e.status_on) {
-            if(has_colors())
-                attron(COLOR_PAIR(STATUS_PAIR));
             editor_setstatus(&e, "[%s] - Lines: %ld/%ld",
                 argv[1], e.linecount != 0 ? (e.cy + e.skiprows) + 1 : 0,
                 e.linecount);
             editor_renderstatus(&e);
-            if(has_colors())
-                attroff(COLOR_PAIR(STATUS_PAIR));
         }
 
         // Reset status message.

@@ -1,6 +1,6 @@
 # Simple makefile for gcc written by stext editor.
 CC=gcc
-CFLAGS=-std=c11 -W -O0 -g #-I$(INCDIR)
+CFLAGS=-std=c11 -Wall -O #-g
 LDFLAGS=-lncurses
 
 BACKUPS=$(shell find . -iname "*.bak")
