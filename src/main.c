@@ -412,12 +412,17 @@ void editor_renderline(editor_t *e, long line)
 
     editor_clearline(e, line, 0);
     for(i = 0; i < size && e->data[startx + i] != '\n'; i++) {
-        mvaddch(line, i - e->skipcols, e->data[startx + i]);
+        if((!isprint(e->data[startx + i]) && !iscntrl(e->data[startx + i]))
+                || (e->data[startx + i] == '\t'))
+            mvaddch(line, i - e->skipcols, ' ');
+        else
+            mvaddch(line, i - e->skipcols, e->data[startx + i]);
     }
-    editor_clearline(e, line, size - e->skipcols);
+    if(i < e->cols)
+        editor_clearline(e, line, i);
 
     if(has_colors())
-        attron(COLOR_PAIR(EDITOR_PAIR));
+        attroff(COLOR_PAIR(EDITOR_PAIR));
 }
 /* Render text buffer from editor.
  */
@@ -518,6 +523,9 @@ int main(int argc, char *argv[])
     while((c = getch()) != CTRL_KEY('q')) {
         long startx = 0;
         long endx = 0;
+
+        // Resizing terminal screen.
+        getmaxyx(stdscr, e.rows, e.cols);
 
         // Get line count of editor.
         editor_getlinecount(&e);
