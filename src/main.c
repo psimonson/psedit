@@ -411,7 +411,7 @@ void editor_renderline(editor_t *e, long line)
         attron(COLOR_PAIR(EDITOR_PAIR));
 
     editor_clearline(e, line, 0);
-    for(i = 0; i < size && e->data[startx + i] != '\n'; i++) {
+    for(i = 0; i < size; i++) {
         if((!isprint(e->data[startx + i]) && !iscntrl(e->data[startx + i]))
                 || (e->data[startx + i] == '\t'))
             mvaddch(line, i - e->skipcols, ' ');
@@ -526,9 +526,6 @@ int main(int argc, char *argv[])
 
         // Resizing terminal screen.
         getmaxyx(stdscr, e.rows, e.cols);
-
-        // Get line count of editor.
-        editor_getlinecount(&e);
 
         // Handle keyboard input.
         switch(c) {
