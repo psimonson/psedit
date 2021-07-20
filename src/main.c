@@ -343,7 +343,7 @@ int editor_create(editor_t *e)
  */
 void editor_delchr(editor_t *e, long unsigned at)
 {
-    if(at > e->size) return;
+    if(at >= e->size) return;
     memmove(&e->data[at], &e->data[at + 1], e->size-at);
     e->size--;
     editor_getlinecount(e);
@@ -746,8 +746,8 @@ int main(int argc, char *argv[])
                 startx = editor_getoffset(&e, e.cy + e.skiprows);
                 endx = editor_getoffset(&e, (e.cy + e.skiprows) + 1);
                 if((e.cx + e.skipcols) >= 0 &&
-                    (e.cx + e.skipcols) <= (endx - startx) &&
-                    (e.cy + e.skiprows) <= e.linecount) {
+                    (e.cx + e.skipcols) < (endx - startx) &&
+                    (e.cy + e.skiprows) < e.linecount) {
                     editor_delchr(&e, startx + (e.cx + e.skipcols));
                 }
                 e.dirty = true;
