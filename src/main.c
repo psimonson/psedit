@@ -70,7 +70,7 @@ long unsigned editor_getline(editor_t *e, long unsigned offset)
     long unsigned i, nlines = 0;
 
     for(i = 0; i < e->size && i != offset; i++) {
-        if(e->data[i] == '\n')
+        if(e->data[i] == '\n' || e->data[i] == '\0')
             nlines++;
     }
     return nlines;
@@ -83,7 +83,7 @@ long unsigned editor_getoffset(editor_t *e, long line_num)
     long unsigned i;
 
     for(i = 0; i < e->size && line_num != nlines; i++) {
-        if(e->data[i] == '\n')
+        if(e->data[i] == '\n' || e->data[i] == '\0')
             nlines++;
     }
     return i;
